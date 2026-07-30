@@ -5,3 +5,7 @@
 !backend/**
 backend/node_modules/
 backend/.env
+!.claude/
+!.claude/skills/
+!.claude/skills/t0-topic-generator/
+!.claude/skills/t0-topic-generator/**
