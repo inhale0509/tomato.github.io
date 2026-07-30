@@ -1,0 +1,1487 @@
+<title>OPIC 어시스턴트</title>
+<style>
+:root {
+  --bg: #FBF6F1;
+  --surface: #FFFFFF;
+  --surface-alt: #F4ECF3;
+  --border: #E9DFE7;
+  --text: #332B3D;
+  --text-muted: #79708A;
+  --accent-purple: #8D7CC4;
+  --accent-purple-strong: #6C58A8;
+  --accent-purple-wash: #EEEAF8;
+  --accent-pink: #E39FBB;
+  --accent-pink-strong: #CD7098;
+  --accent-pink-wash: #FBEBF1;
+  --accent-yellow: #F0C24C;
+  --accent-yellow-strong: #C99418;
+  --accent-yellow-wash: #FCF3DC;
+  --good: #5E9470;
+  --good-wash: #E6F0E8;
+  --warning: #C98A3E;
+  --warning-wash: #F6EBDA;
+  --critical: #C4645F;
+  --critical-wash: #F8E7E6;
+  --shadow: 0 1px 2px rgba(60, 40, 70, 0.06), 0 8px 24px rgba(60, 40, 70, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1B1620;
+    --surface: #241D2B;
+    --surface-alt: #2C2333;
+    --border: #3B2F45;
+    --text: #EDE6F0;
+    --text-muted: #A99CB3;
+    --accent-purple: #B6A0E8;
+    --accent-purple-strong: #9782D6;
+    --accent-purple-wash: #322A47;
+    --accent-pink: #E8AFC7;
+    --accent-pink-strong: #D687A8;
+    --accent-pink-wash: #3B2530;
+    --accent-yellow: #EAC868;
+    --accent-yellow-strong: #F0C24C;
+    --accent-yellow-wash: #3A311D;
+    --good: #82B992;
+    --good-wash: #223327;
+    --warning: #D9A052;
+    --warning-wash: #3A2E1B;
+    --critical: #D9827D;
+    --critical-wash: #3A2320;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1B1620; --surface: #241D2B; --surface-alt: #2C2333; --border: #3B2F45;
+  --text: #EDE6F0; --text-muted: #A99CB3;
+  --accent-purple: #B6A0E8; --accent-purple-strong: #9782D6; --accent-purple-wash: #322A47;
+  --accent-pink: #E8AFC7; --accent-pink-strong: #D687A8; --accent-pink-wash: #3B2530;
+  --accent-yellow: #EAC868; --accent-yellow-strong: #F0C24C; --accent-yellow-wash: #3A311D;
+  --good: #82B992; --good-wash: #223327; --warning: #D9A052; --warning-wash: #3A2E1B;
+  --critical: #D9827D; --critical-wash: #3A2320;
+}
+:root[data-theme="light"] {
+  --bg: #FBF6F1; --surface: #FFFFFF; --surface-alt: #F4ECF3; --border: #E9DFE7;
+  --text: #332B3D; --text-muted: #79708A;
+  --accent-purple: #8D7CC4; --accent-purple-strong: #6C58A8; --accent-purple-wash: #EEEAF8;
+  --accent-pink: #E39FBB; --accent-pink-strong: #CD7098; --accent-pink-wash: #FBEBF1;
+  --accent-yellow: #F0C24C; --accent-yellow-strong: #C99418; --accent-yellow-wash: #FCF3DC;
+  --good: #5E9470; --good-wash: #E6F0E8; --warning: #C98A3E; --warning-wash: #F6EBDA;
+  --critical: #C4645F; --critical-wash: #F8E7E6;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  line-height: 1.55;
+  font-size: 15px;
+}
+#app { max-width: 1080px; margin: 0 auto; padding: 32px 20px 80px; }
+h1, h2, h3 { text-wrap: balance; font-weight: 700; letter-spacing: -0.01em; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+::selection { background: var(--accent-purple-wash); }
+:focus-visible { outline: 2px solid var(--accent-purple); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 800; font-size: 15px; letter-spacing: 0.02em; color: var(--accent-purple-strong);
+  text-transform: uppercase; margin-bottom: 28px;
+}
+.brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-yellow); }
+
+.step-track { display: flex; gap: 6px; margin-bottom: 32px; }
+.step-track .seg { flex: 1; height: 4px; border-radius: 999px; background: var(--border); }
+.step-track .seg.done { background: var(--accent-purple); }
+.step-track .seg.active { background: var(--accent-pink); }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 32px; box-shadow: var(--shadow);
+}
+.card + .card { margin-top: 20px; }
+
+.eyebrow { color: var(--text-muted); font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+.title-lg { font-size: 26px; margin: 0 0 8px; }
+.title-md { font-size: 19px; margin: 0 0 4px; }
+.subtle { color: var(--text-muted); font-size: 13.5px; }
+
+.field { margin-bottom: 22px; }
+.field label.field-label { display: block; font-weight: 600; font-size: 13.5px; margin-bottom: 8px; }
+.field input[type="text"], .field input[type="date"] {
+  width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); font-size: 14.5px;
+}
+.field input:focus { border-color: var(--accent-purple); }
+.field textarea {
+  width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); font-size: 12.5px; line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical;
+}
+.field textarea:focus { border-color: var(--accent-purple); }
+.field-error { color: var(--critical); font-size: 13px; margin-top: 8px; min-height: 18px; }
+
+.opt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.opt-row { display: flex; flex-direction: column; gap: 8px; }
+.opt {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg); font-size: 14px; cursor: pointer;
+}
+.opt:hover { border-color: var(--accent-purple); }
+.opt.checked { border-color: var(--accent-purple); background: var(--accent-purple-wash); }
+.opt .box { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; border: 1.5px solid var(--text-muted); position: relative; }
+.opt .box.box-check { border-radius: 4px; }
+.opt .box.box-radio { border-radius: 50%; }
+.opt.checked .box { border-color: var(--accent-purple-strong); background: var(--accent-purple-strong); }
+.opt.checked .box.box-check::after { content: ""; position: absolute; left: 4px; top: 0px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.opt.checked .box.box-radio::after { content: ""; position: absolute; left: 3px; top: 3px; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+.opt .badge-rec { margin-left: auto; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+.badge-rec.high { background: var(--good-wash); color: var(--good); }
+.badge-rec.mid { background: var(--accent-yellow-wash); color: var(--accent-yellow-strong); }
+.badge-rec.low { background: var(--critical-wash); color: var(--critical); }
+
+.cat-block { margin-bottom: 26px; }
+.cat-block h4 { font-size: 14px; margin: 0 0 10px; color: var(--accent-pink-strong); }
+.opt.compact { padding: 9px 12px; font-size: 13.5px; }
+
+.counter-bar {
+  position: sticky; top: 0; z-index: 5; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; gap: 16px;
+}
+.counter-bar .num { font-weight: 800; font-size: 18px; }
+.counter-bar .num.ok { color: var(--good); }
+.counter-bar .num.bad { color: var(--critical); }
+.counter-bar .track { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.counter-bar .track .fill { height: 100%; background: var(--accent-pink); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 10px;
+  border: 1px solid transparent; font-weight: 700; font-size: 14px;
+}
+.btn-primary { background: var(--accent-purple); color: #fff; }
+.btn-primary:hover { background: var(--accent-purple-strong); }
+.btn-primary:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
+.btn-ghost:hover { border-color: var(--accent-purple); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--border); background: transparent; }
+.btn-danger { background: transparent; border-color: var(--border); color: var(--critical); }
+.btn-danger:hover { border-color: var(--critical); background: var(--critical-wash); }
+.btn-sm { padding: 7px 12px; font-size: 12.5px; border-radius: 8px; }
+.row-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; gap: 12px; }
+
+.nav {
+  display: flex; align-items: center; gap: 4px; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.nav .brand { margin-bottom: 0; margin-right: auto; }
+.nav-tab {
+  padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: 13.5px; color: var(--text-muted); border: 1px solid transparent;
+}
+.nav-tab.active { background: var(--accent-purple-wash); color: var(--accent-purple-strong); }
+.nav-tab:hover:not(.active) { color: var(--text); }
+
+.grid-2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.board-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 700px) { .board-cols { grid-template-columns: 1fr 1fr; } }
+.board-col { background: var(--surface-alt); border-radius: 12px; padding: 12px; min-height: 120px; }
+.board-col h5 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 0 0 10px; display: flex; justify-content: space-between; }
+.board-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 9px 11px;
+  font-size: 12.5px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+}
+.board-card:hover { border-color: var(--accent-purple); }
+.board-card .pct { font-size: 10.5px; font-weight: 700; color: var(--text-muted); }
+.stage-0 { border-left: 3px solid var(--border); }
+.stage-1 { border-left: 3px solid var(--accent-yellow); }
+.stage-2 { border-left: 3px solid var(--accent-pink); }
+.stage-3 { border-left: 3px solid var(--good); }
+
+.sched-wrap { overflow-x: auto; }
+table.sched { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.sched th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+table.sched td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.sched tr.today { background: var(--accent-yellow-wash); }
+table.sched tr.today td:first-child { border-radius: 8px 0 0 8px; }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; margin: 1px 3px 1px 0; }
+.pill-new { background: var(--accent-purple-wash); color: var(--accent-purple-strong); }
+.pill-review { background: var(--accent-pink-wash); color: var(--accent-pink-strong); }
+.pill-restweek { background: var(--surface-alt); color: var(--text-muted); }
+
+.today-panel { display: flex; flex-direction: column; gap: 14px; }
+.q-topic { border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--surface); }
+.q-topic .topic-name { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+.q-topic .rec { font-size: 11.5px; color: var(--accent-purple-strong); font-weight: 700; background: var(--accent-purple-wash); display: inline-block; padding: 1px 8px; border-radius: 999px; margin-bottom: 10px; }
+.q-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.q-list li { font-size: 13.5px; padding: 9px 12px; border-radius: 8px; background: var(--surface-alt); display: flex; gap: 8px; }
+.q-list li .qn { color: var(--text-muted); font-weight: 700; flex-shrink: 0; }
+.q-list li.placeholder { color: var(--text-muted); font-style: italic; }
+.review-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--surface); }
+.review-card .rtype { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+.rtype.day3 { background: var(--warning-wash); color: var(--warning); }
+.rtype.day7 { background: var(--good-wash); color: var(--good); }
+
+.empty-note { color: var(--text-muted); font-size: 13px; padding: 14px 16px; background: var(--surface-alt); border-radius: 10px; }
+
+.filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-bar select {
+  padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px;
+}
+table.db { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.db th { text-align: left; padding: 8px 10px; color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
+
+.io-bar { display: flex; gap: 8px; }
+.welcome-hero { text-align: center; padding: 90px 20px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.welcome-hero .msg { font-size: 22px; font-weight: 700; max-width: 480px; text-wrap: balance; }
+</style>
+<div id="app"></div>
+<script>
+(function () {
+  "use strict";
+  var STORAGE_KEY = "opicAssistantData";
+
+  var PART1 = ["사업/회사", "재택근무/사업", "교사/교육자", "일 경험 없음"];
+  var PART2_EDU = ["학위 과정", "전문 기술 학습", "어학 수업", "5년 이상 경과", "없음"];
+  var PART3 = ["개인주택·아파트에 홀로 거주", "친구·룸메이트와 함께", "가족과 함께", "학교 기숙사", "군대 막사"];
+
+  var HIGH_REC = ["카페/커피전문점 가기", "영화보기", "공원 가기", "음악 감상하기", "국내 여행", "해외여행", "쇼핑하기", "TV 시청하기", "독서", "요리하기", "산책", "걷기", "조깅", "SNS에 글 올리기"];
+  var LOW_REC = ["크로켓", "미식축구", "하키", "아이스 스케이트", "태권도", "체스 하기", "주식 투자", "군대 막사"];
+
+  var PART4 = {
+    "여가활동": ["영화보기", "클럽/나이트클럽 가기", "박물관 가기", "공원 가기", "스포츠 관람", "주거 개선", "해변 가기", "요리 관련 프로그램 시청", "게임하기", "공연 보기", "SNS에 글 올리기", "캠핑 하기", "구직 활동하기", "술집/바에 가기", "당구 치기", "친구들과 문자 대화", "리얼리티 쇼 시청", "쇼핑하기", "TV 시청하기", "콘서트 보기", "체스 하기", "카페/커피전문점 가기", "뉴스를 보거나 듣기", "시험 대비 과정 수강", "차 드라이브 하기", "자원봉사"],
+    "취미/관심사": ["아이에게 책 읽어주기", "독서", "글쓰기", "신문 읽기", "애완동물 키우기", "혼자 노래 부르거나 합창", "주식 투자", "악기 연주하기", "사진 촬영하기", "요리하기", "음악 감상하기", "그림 그리기", "춤추기", "여행 관련 잡지나 블로그 읽기"],
+    "운동": ["농구", "야구/소프트볼", "축구", "미식축구", "하키", "크로켓", "골프", "배구", "테니스", "배드민턴", "탁구", "수영", "자전거", "스키/스노보드", "아이스 스케이트", "조깅", "걷기", "요가", "하이킹/트레킹", "낚시", "헬스", "태권도", "운동 수업 수강하기", "운동을 전혀 하지 않음"],
+    "휴가/출장": ["국내 출장", "해외출장", "집에서 보내는 휴가", "국내 여행", "해외여행"]
+  };
+  var PART5_CANDIDATES = ["병원", "명절", "은행", "경찰", "식당", "호텔", "가구 구입", "날씨", "교통 수단", "가전제품"];
+  var NO_EXERCISE = "운동을 전혀 하지 않음";
+  var PART4_TARGET = 6;
+  var PART5_TARGET = 4;
+  var STAGES = ["학습 전", "스크립트 작성중", "복습중", "완료"];
+
+  function defaultState() {
+    return {
+      profile: null,
+      surveyAnswers: null,
+      difficultyLevel: "5-6",
+      welcomeMessage: null,
+      topicQuestions: null,
+      schedule: null,
+      progressBoard: {},
+      scripts: [],
+      expressions: [],
+      logs: []
+    };
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return defaultState();
+      var parsed = JSON.parse(raw);
+      var d = defaultState();
+      for (var k in d) if (parsed[k] !== undefined) d[k] = parsed[k];
+      return d;
+    } catch (e) {
+      return defaultState();
+    }
+  }
+
+  var state = load();
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function fmtDate(d) {
+    var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+  function parseISO(s) {
+    var parts = s.split("-").map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  var WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"];
+
+  function isWeekend(d) { var w = d.getDay(); return w === 0 || w === 6; }
+
+  function weekdaysFrom(startDate, count) {
+    var out = [];
+    var d = new Date(startDate);
+    while (out.length < count) {
+      if (!isWeekend(d)) out.push(new Date(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }
+
+  function addBusinessDays(date, n) {
+    var d = new Date(date);
+    var added = 0;
+    while (added < n) {
+      d.setDate(d.getDate() + 1);
+      if (!isWeekend(d)) added++;
+    }
+    return d;
+  }
+
+  function addCalendarDays(date, n) {
+    var d = new Date(date);
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+
+  function generateSchedule(topics, startDateStr) {
+    var startDate = parseISO(startDateStr);
+    var learnDays = weekdaysFrom(startDate, Math.ceil(topics.length / 2));
+    var lastLearnDay = learnDays[learnDays.length - 1];
+    var reviewOnlyDays = weekdaysFrom(addCalendarDays(lastLearnDay, 1), 5);
+
+    var byDate = {};
+    function ensure(dateStr) {
+      if (!byDate[dateStr]) byDate[dateStr] = { newTopics: [], reviewTopics: [], restWeek: false };
+      return byDate[dateStr];
+    }
+
+    learnDays.forEach(function (day, i) {
+      var dateStr = fmtDate(day);
+      var t1 = topics[i * 2], t2 = topics[i * 2 + 1];
+      var entry = ensure(dateStr);
+      if (t1) entry.newTopics.push(t1);
+      if (t2) entry.newTopics.push(t2);
+
+      [t1, t2].forEach(function (topic) {
+        if (!topic) return;
+        var d3 = fmtDate(addBusinessDays(day, 3));
+        var d7 = fmtDate(addCalendarDays(day, 7));
+        ensure(d3).reviewTopics.push({ topic: topic, type: "3day", learnedOn: dateStr });
+        ensure(d7).reviewTopics.push({ topic: topic, type: "7day", learnedOn: dateStr });
+      });
+    });
+
+    reviewOnlyDays.forEach(function (day) {
+      ensure(fmtDate(day)).restWeek = true;
+    });
+
+    var allDays = learnDays.concat(reviewOnlyDays).map(fmtDate).sort();
+    return {
+      startDate: fmtDate(startDate),
+      learnDays: learnDays.map(fmtDate),
+      reviewOnlyDays: reviewOnlyDays.map(fmtDate),
+      byDate: byDate,
+      allDays: allDays,
+      topics: topics
+    };
+  }
+
+  // ① 주말 보충: 오늘의 미완료 신규 주제를 다가오는 주말로 옮긴다. 평일 스케줄은 그대로라 3주 목표가 유지된다.
+  function extendScheduleByWeekendMakeup(schedule, todayStr) {
+    var todayEntry = schedule.byDate[todayStr];
+    var pendingTopics = (todayEntry && todayEntry.newTopics) || [];
+
+    var d = parseISO(todayStr);
+    d.setDate(d.getDate() + 1);
+    while (!isWeekend(d)) d.setDate(d.getDate() + 1);
+    var weekendStr = fmtDate(d);
+
+    var newByDate = {};
+    for (var key in schedule.byDate) newByDate[key] = schedule.byDate[key];
+    var existing = newByDate[weekendStr];
+    if (existing) {
+      existing.newTopics = (existing.newTopics || []).concat(pendingTopics);
+      existing.makeup = true;
+    } else {
+      newByDate[weekendStr] = { newTopics: pendingTopics.slice(), reviewTopics: [], restWeek: false, makeup: true };
+    }
+
+    var allDays = schedule.allDays.indexOf(weekendStr) === -1 ? schedule.allDays.concat([weekendStr]).sort() : schedule.allDays;
+
+    return {
+      startDate: schedule.startDate,
+      learnDays: schedule.learnDays,
+      reviewOnlyDays: schedule.reviewOnlyDays,
+      byDate: newByDate,
+      allDays: allDays,
+      topics: schedule.topics
+    };
+  }
+
+  // ② 목표일 연장: 오늘 이후 모든 날짜의 내용을 평일 한 칸씩 뒤로 민다(간격은 자동 보존). 3주 목표가 그만큼 늘어난다.
+  function extendScheduleByPushingDeadline(schedule, todayStr) {
+    var keepDates = schedule.allDays.filter(function (d) { return d <= todayStr; });
+    var futureDates = schedule.allDays.filter(function (d) { return d > todayStr; }).sort();
+
+    // 각 미래 날짜를 개별적으로 다음 평일로 민다 — "내일부터 새 시퀀스를 재계산"하면
+    // 오늘과 첫 예정일 사이에 이미 빈 평일(주말 낀 간격)이 있을 때 그 틈으로 흡수되어
+    // 실제로는 아무 날짜도 밀리지 않는 버그가 있었다(간격을 무시하고 처음부터 다시 채움).
+    var oldToNew = {};
+    futureDates.forEach(function (oldD) { oldToNew[oldD] = fmtDate(addBusinessDays(parseISO(oldD), 1)); });
+
+    var newByDate = {};
+    keepDates.forEach(function (d) { newByDate[d] = schedule.byDate[d]; });
+    futureDates.forEach(function (oldD) { newByDate[oldToNew[oldD]] = schedule.byDate[oldD]; });
+
+    function remap(d) { return oldToNew[d] || d; }
+    var newAllDays = keepDates.concat(futureDates.map(remap)).sort();
+
+    return {
+      startDate: schedule.startDate,
+      learnDays: schedule.learnDays.map(remap).sort(),
+      reviewOnlyDays: schedule.reviewOnlyDays.map(remap).sort(),
+      byDate: newByDate,
+      allDays: newAllDays,
+      topics: schedule.topics
+    };
+  }
+
+  function recBadge(item) {
+    if (HIGH_REC.indexOf(item) !== -1) return { cls: "high", label: "추천" };
+    if (LOW_REC.indexOf(item) !== -1) return { cls: "low", label: "까다로움" };
+    return { cls: "mid", label: "보통" };
+  }
+
+  // ---------- rendering ----------
+  var app = document.getElementById("app");
+
+  function render() {
+    if (!state.profile) return renderStep1_1();
+    if (!state.surveyAnswers) return renderStep1_2();
+    if (!state.schedule) return renderStep1_3();
+    if (!state.welcomeMessage) return renderStep1_4();
+    if (!state.entered) return renderStep2_1();
+    return renderDashboard(state.activeTab || "dashboard");
+  }
+
+  function stepTrack(activeIdx) {
+    var html = '<div class="step-track">';
+    for (var i = 0; i < 4; i++) {
+      var cls = i < activeIdx ? "done" : (i === activeIdx ? "active" : "");
+      html += '<div class="seg ' + cls + '"></div>';
+    }
+    return html + "</div>";
+  }
+
+  function brand() {
+    return '<div class="brand"><span class="dot"></span>OPIC 어시스턴트</div>';
+  }
+
+  function renderStep1_1() {
+    app.innerHTML =
+      brand() +
+      stepTrack(0) +
+      '<div class="card">' +
+      '<div class="eyebrow">1-1 · 프로필 설정</div>' +
+      '<h1 class="title-lg">누구의 3주 준비인지 알려주세요</h1>' +
+      '<p class="subtle" style="margin-bottom:24px;">실제 로그인이 아니라 이 브라우저에만 저장되는 설정이에요.</p>' +
+      '<div class="field"><label class="field-label">이름</label><input type="text" id="f-name" placeholder="예: 여름캠프" /></div>' +
+      '<div class="field"><label class="field-label">공부 시작 날짜</label><input type="date" id="f-date" /></div>' +
+      '<div class="row-actions"><span></span><button class="btn btn-primary" id="btn-next">다음: 배경 설문 →</button></div>' +
+      "</div>";
+
+    var today = fmtDate(new Date());
+    document.getElementById("f-date").value = today;
+
+    document.getElementById("btn-next").addEventListener("click", function () {
+      var name = document.getElementById("f-name").value.trim();
+      var date = document.getElementById("f-date").value;
+      if (!name || !date) { alert("이름과 시작 날짜를 입력해주세요."); return; }
+      state.profile = { name: name, startDate: date };
+      save();
+      render();
+    });
+  }
+
+  function renderStep1_2() {
+    var sel = state._surveyDraft || (state._surveyDraft = {
+      part1: null, part2Student: null, part2Edu: null, part3: null, part4: [], part5: []
+    });
+
+    function optRow(name, options, current, multi) {
+      return options.map(function (o) {
+        var checked = multi ? current.indexOf(o) !== -1 : current === o;
+        return '<div class="opt ' + (checked ? "checked" : "") + '" data-name="' + name + '" data-val="' + escapeHtml(o) + '" data-multi="' + (multi ? 1 : 0) + '" role="' + (multi ? "checkbox" : "radio") + '" aria-checked="' + checked + '" tabindex="0">' +
+          '<span class="box ' + (multi ? "box-check" : "box-radio") + '"></span>' +
+          '<span>' + escapeHtml(o) + "</span></div>";
+      }).join("");
+    }
+
+    var part4Count = sel.part4.filter(function (x) { return x !== NO_EXERCISE; }).length;
+    var part5Count = sel.part5.length;
+
+    var part4Html = Object.keys(PART4).map(function (cat) {
+      return '<div class="cat-block"><h4>' + escapeHtml(cat) + '</h4><div class="opt-grid">' +
+        PART4[cat].map(function (item) {
+          var checked = sel.part4.indexOf(item) !== -1;
+          var badgeHtml;
+          if (item === NO_EXERCISE) {
+            badgeHtml = '<span class="badge-rec mid">6개에 미포함</span>';
+          } else {
+            var rec = recBadge(item);
+            badgeHtml = '<span class="badge-rec ' + rec.cls + '">' + rec.label + "</span>";
+          }
+          return '<div class="opt compact ' + (checked ? "checked" : "") + '" data-name="part4" data-val="' + escapeHtml(item) + '" data-multi="1" role="checkbox" aria-checked="' + checked + '" tabindex="0">' +
+            '<span class="box box-check"></span>' +
+            "<span>" + escapeHtml(item) + "</span>" +
+            badgeHtml + "</div>";
+        }).join("") + "</div></div>";
+    }).join("");
+
+    var part5Html = '<div class="opt-grid">' + PART5_CANDIDATES.map(function (item) {
+      var checked = sel.part5.indexOf(item) !== -1;
+      return '<div class="opt ' + (checked ? "checked" : "") + '" data-name="part5" data-val="' + escapeHtml(item) + '" data-multi="1" role="checkbox" aria-checked="' + checked + '" tabindex="0">' +
+        '<span class="box box-check"></span>' +
+        "<span>" + escapeHtml(item) + "</span></div>";
+    }).join("") + "</div>";
+
+    var canProceed = sel.part1 && sel.part2Student && sel.part3 && part4Count === PART4_TARGET && part5Count === PART5_TARGET;
+
+    app.innerHTML =
+      brand() + stepTrack(0) +
+      '<div class="counter-bar">' +
+      '<span>Part 4 선택 <span class="num ' + (part4Count === PART4_TARGET ? "ok" : "bad") + '">' + part4Count + "/" + PART4_TARGET + '</span></span>' +
+      '<div class="track"><div class="fill" style="width:' + Math.min(100, part4Count / PART4_TARGET * 100) + '%"></div></div>' +
+      '<span>돌발주제 <span class="num ' + (part5Count === PART5_TARGET ? "ok" : "bad") + '">' + part5Count + "/" + PART5_TARGET + '</span></span>' +
+      "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">1-2 · 배경 설문 (Part 1)</div>' +
+      '<h2 class="title-md">직업 분야</h2>' +
+      '<div class="opt-row">' + optRow("part1", PART1, sel.part1, false) + "</div>" +
+      "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">Part 2</div>' +
+      '<h2 class="title-md">학생 여부 및 교육</h2>' +
+      '<p class="subtle" style="margin-bottom:10px;">현재 학생이신가요?</p>' +
+      '<div class="opt-row" style="margin-bottom:18px;">' + optRow("part2Student", ["예", "아니요"], sel.part2Student, false) + "</div>" +
+      '<p class="subtle" style="margin-bottom:10px;">최근 수강한 강의</p>' +
+      '<div class="opt-row">' + optRow("part2Edu", PART2_EDU, sel.part2Edu, false) + "</div>" +
+      "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">Part 3</div>' +
+      '<h2 class="title-md">거주 형태</h2>' +
+      '<div class="opt-row">' + optRow("part3", PART3, sel.part3, false) + "</div>" +
+      "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">Part 4 · 일반 주제 ' + PART4_TARGET + '개 선택</div>' +
+      '<h2 class="title-md">여가활동 · 취미 · 운동 · 여행</h2>' +
+      '<p class="subtle" style="margin-bottom:18px;">선택한 항목이 일반 학습 주제가 됩니다. 자기소개는 항상, 학교·거주지 관련 주제는 Part 1~3 답변에 따라 자동으로 추가돼요(추가 규칙은 T0에서 확정). 배지는 스크립트로 풀어내기 수월한 정도예요. \'운동을 전혀 하지 않음\'은 체크해도 6개 카운트에는 포함되지 않아요 — 대신 다른 주제 질문을 만들 때 맥락 정보로만 반영됩니다.</p>' +
+      part4Html +
+      "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">Part 5 (신규) · 정확히 4개 선택</div>' +
+      '<h2 class="title-md">돌발주제 선택</h2>' +
+      '<p class="subtle" style="margin-bottom:18px;">실제 시험은 무작위지만, 이 앱은 선택 폭을 넓히기 위해 후보 중 직접 고르게 합니다.</p>' +
+      part5Html +
+      "</div>" +
+      '<div class="row-actions">' +
+      '<button class="btn btn-ghost" id="btn-back">← 이전</button>' +
+      '<button class="btn btn-primary" id="btn-next" ' + (canProceed ? "" : "disabled") + ">다음: 스케줄 생성 →</button>" +
+      "</div>";
+
+    Array.prototype.forEach.call(app.querySelectorAll(".opt"), function (el) {
+      function toggle() {
+        var name = el.getAttribute("data-name");
+        var val = el.getAttribute("data-val");
+        var multi = el.getAttribute("data-multi") === "1";
+        if (multi) {
+          var arr = sel[name];
+          var idx = arr.indexOf(val);
+          if (idx === -1) arr.push(val); else arr.splice(idx, 1);
+        } else {
+          sel[name] = val;
+        }
+        renderStep1_2();
+      }
+      el.addEventListener("click", toggle);
+      el.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      });
+    });
+
+    document.getElementById("btn-back").addEventListener("click", function () {
+      state.profile = null; render();
+    });
+    var nextBtn = document.getElementById("btn-next");
+    if (nextBtn) nextBtn.addEventListener("click", function () {
+      if (!canProceed) return;
+      state.surveyAnswers = {
+        part1: sel.part1, part2Student: sel.part2Student, part2Edu: sel.part2Edu, part3: sel.part3,
+        part4: sel.part4.slice(), part5: sel.part5.slice()
+      };
+      delete state._surveyDraft;
+      save();
+      render();
+    });
+  }
+
+  function renderStep1_3() {
+    var hasT0 = state.topicQuestions && Object.keys(state.topicQuestions).length === 20;
+
+    if (!hasT0) {
+      app.innerHTML =
+        brand() + stepTrack(1) +
+        '<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">' +
+        '<div><div class="eyebrow" style="margin-bottom:2px;">1단계</div>' +
+        '<h2 class="title-md" style="margin-bottom:4px;">설문 결과를 복사해 Claude에게 붙여넣으세요</h2>' +
+        '<p class="subtle">Part1~5 답변을 정해진 포맷으로 복사합니다. T0가 이걸 받아 20개 학습 주제 + 예시 질문 80개를 만들어줘요.</p></div>' +
+        '<button class="btn btn-primary btn-sm" id="btn-copy-survey" style="flex-shrink:0;">설문 결과 복사 (T0용)</button>' +
+        "</div>" +
+        '<div class="card">' +
+        '<div class="eyebrow">2단계 · 1-3 · T0 결과 가져오기</div>' +
+        '<h1 class="title-lg">Claude가 만들어준 결과를 붙여넣으세요</h1>' +
+        '<p class="subtle" style="margin-bottom:16px;">T0가 답한 JSON 코드 블록 전체(<code>{"topics": [...]}</code>)를 그대로 복사해서 아래에 붙여넣어주세요.</p>' +
+        '<div class="field"><textarea id="t0-paste" rows="10" placeholder=\'{"topics": [{"name": "...", "category": "...", "questions": ["...", "...", "...", "..."]}, ...]}\'></textarea></div>' +
+        '<div class="field-error" id="t0-import-error"></div>' +
+        '<div class="row-actions">' +
+        '<button class="btn btn-ghost" id="btn-back">← 이전</button>' +
+        '<button class="btn btn-primary" id="btn-import-t0">가져오기 →</button>' +
+        "</div></div>";
+
+      document.getElementById("btn-copy-survey").addEventListener("click", copySurveyPrompt);
+      document.getElementById("btn-back").addEventListener("click", function () {
+        state.surveyAnswers = null; state._surveyDraft = null; render();
+      });
+      document.getElementById("btn-import-t0").addEventListener("click", function () {
+        var text = document.getElementById("t0-paste").value.trim();
+        if (!text) {
+          document.getElementById("t0-import-error").textContent = "붙여넣을 내용이 없어요.";
+          return;
+        }
+        var result = parseT0Output(text);
+        if (result.error) {
+          document.getElementById("t0-import-error").textContent = result.error;
+          return;
+        }
+        applyT0Import(result.topics);
+        render();
+      });
+      return;
+    }
+
+    var topics = state._t0TopicNames;
+    if (!state._scheduleDraft) state._scheduleDraft = generateSchedule(topics, state.profile.startDate);
+    var sched = state._scheduleDraft;
+
+    var rows = sched.allDays.map(function (dateStr) {
+      var entry = sched.byDate[dateStr];
+      var d = parseISO(dateStr);
+      var label = dateStr + " (" + WEEKDAY_KO[d.getDay()] + ")";
+      var content = "";
+      if (entry.restWeek) content += '<span class="pill pill-restweek">복습 · 모의고사</span>';
+      entry.newTopics.forEach(function (t) { content += '<span class="pill pill-new">신규 · ' + escapeHtml(t) + "</span>"; });
+      entry.reviewTopics.forEach(function (r) { content += '<span class="pill pill-review">복습(' + (r.type === "3day" ? "+3일" : "+7일") + ") · " + escapeHtml(r.topic) + "</span>"; });
+      return "<tr><td>" + label + "</td><td>" + content + "</td></tr>";
+    }).join("");
+
+    app.innerHTML =
+      brand() + stepTrack(1) +
+      '<div class="card">' +
+      '<div class="eyebrow">1-3 · 스케줄 및 학습 진행보드 자동 생성</div>' +
+      '<h1 class="title-lg">' + (sched.learnDays.length + sched.reviewOnlyDays.length) + '일 스케줄을 만들었어요</h1>' +
+      '<p class="subtle" style="margin-bottom:22px;">평일마다 2개 주제, 주말 휴식. T0가 만든 주제 ' + topics.length + '개 → 신규 학습 ' + sched.learnDays.length + '평일 + 복습·모의고사 ' + sched.reviewOnlyDays.length + '평일.</p>' +
+      '<div class="sched-wrap"><table class="sched"><thead><tr><th>날짜</th><th>내용</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      '<div class="row-actions">' +
+      '<span><button class="btn btn-ghost" id="btn-back">← 이전</button> <button class="btn btn-ghost" id="btn-reimport">T0 결과 다시 가져오기</button></span>' +
+      '<button class="btn btn-primary" id="btn-confirm">이 스케줄로 확정 →</button>' +
+      "</div></div>";
+
+    document.getElementById("btn-back").addEventListener("click", function () {
+      delete state._scheduleDraft;
+      state.surveyAnswers = null; state._surveyDraft = null; state.topicQuestions = null; state._t0TopicNames = null; render();
+    });
+    document.getElementById("btn-reimport").addEventListener("click", function () {
+      delete state._scheduleDraft;
+      state.topicQuestions = null; state._t0TopicNames = null;
+      save();
+      render();
+    });
+    document.getElementById("btn-confirm").addEventListener("click", function () {
+      state.schedule = sched;
+      var board = {};
+      topics.forEach(function (t) { board[t] = 0; });
+      state.progressBoard = board;
+      delete state._scheduleDraft;
+      save();
+      render();
+    });
+  }
+
+  function renderStep1_4() {
+    app.innerHTML =
+      brand() + stepTrack(2) +
+      '<div class="card">' +
+      '<div class="eyebrow">1-4 · 시작화면 문구 설정</div>' +
+      '<h1 class="title-lg">앞으로 시작 화면에서 볼 한 마디</h1>' +
+      '<p class="subtle" style="margin-bottom:22px;">여러 개를 순환하는 게 아니라 하나로 고정됩니다.</p>' +
+      '<div class="field"><input type="text" id="f-msg" placeholder="예: 오늘도 20분, AL까지 3주" /></div>' +
+      '<div class="row-actions"><span></span><button class="btn btn-primary" id="btn-finish">설정 완료 →</button></div>' +
+      "</div>";
+
+    document.getElementById("btn-finish").addEventListener("click", function () {
+      var msg = document.getElementById("f-msg").value.trim();
+      if (!msg) { alert("문구를 입력해주세요."); return; }
+      state.welcomeMessage = msg;
+      save();
+      render();
+    });
+  }
+
+  function renderStep2_1() {
+    app.innerHTML =
+      '<div class="welcome-hero">' +
+      brand() +
+      '<div class="msg">' + escapeHtml(state.welcomeMessage) + "</div>" +
+      '<button class="btn btn-primary" id="btn-start">시작</button>' +
+      "</div>";
+    document.getElementById("btn-start").addEventListener("click", function () {
+      state.entered = true; save(); render();
+    });
+  }
+
+  function topStageIdx(topic) { return state.progressBoard[topic] || 0; }
+
+  function cycleStage(topic) {
+    var cur = topStageIdx(topic);
+    state.progressBoard[topic] = (cur + 1) % 4;
+    save();
+    render();
+  }
+
+  function navBar(active) {
+    var tabs = [["dashboard", "2-2 대시보드"], ["scripts", "3-1 전체 스크립트"], ["expressions", "3-2 전체 표현"]];
+    var confirmBanner = state._confirmingReset
+      ? '<div class="card" style="border-color:var(--critical); margin-bottom:20px;">' +
+        '<p class="subtle" style="margin-bottom:14px; color:var(--critical);">정말 처음부터 다시 시작할까요? 프로필·설문·스케줄·진행보드·스크립트·표현이 전부 삭제되고 1-1부터 다시 시작합니다. (되돌릴 수 없어요 — 필요하면 먼저 \'내보내기\'로 백업하세요.)</p>' +
+        '<div class="row-actions" style="margin-top:0;"><button class="btn btn-ghost btn-sm" id="btn-reset-cancel">취소</button><button class="btn btn-danger btn-sm" id="btn-reset-confirm">네, 초기화할게요</button></div>' +
+        "</div>"
+      : "";
+    return '<div class="nav">' + brand() +
+      tabs.map(function (t) {
+        return '<button class="nav-tab ' + (active === t[0] ? "active" : "") + '" data-tab="' + t[0] + '">' + t[1] + "</button>";
+      }).join("") +
+      '<div class="io-bar"><button class="btn btn-ghost btn-sm" id="btn-export">내보내기</button>' +
+      '<label class="btn btn-ghost btn-sm" style="margin:0;">가져오기<input type="file" id="f-import" accept="application/json" style="display:none" /></label>' +
+      '<button class="btn btn-danger btn-sm" id="btn-reset">처음부터 다시 시작 (회원탈퇴)</button></div>' +
+      "</div>" + confirmBanner;
+  }
+
+  function requestReset() {
+    state._confirmingReset = true;
+    render();
+  }
+
+  function cancelReset() {
+    state._confirmingReset = false;
+    render();
+  }
+
+  function confirmReset() {
+    localStorage.removeItem(STORAGE_KEY);
+    state = defaultState();
+    render();
+  }
+
+  function bindNav() {
+    Array.prototype.forEach.call(app.querySelectorAll(".nav-tab"), function (el) {
+      el.addEventListener("click", function () {
+        state.activeTab = el.getAttribute("data-tab");
+        save(); render();
+      });
+    });
+    document.getElementById("btn-export").addEventListener("click", doExport);
+    document.getElementById("f-import").addEventListener("change", doImport);
+    document.getElementById("btn-reset").addEventListener("click", requestReset);
+    var cancelBtn = document.getElementById("btn-reset-cancel");
+    if (cancelBtn) cancelBtn.addEventListener("click", cancelReset);
+    var confirmBtn = document.getElementById("btn-reset-confirm");
+    if (confirmBtn) confirmBtn.addEventListener("click", confirmReset);
+  }
+
+  function doExport() {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "opic-data.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function doImport(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var parsed = JSON.parse(reader.result);
+        var d = defaultState();
+        for (var k in d) if (parsed[k] !== undefined) d[k] = parsed[k];
+        d.entered = parsed.entered; d.activeTab = parsed.activeTab;
+        state = d;
+        save();
+        render();
+      } catch (err) {
+        alert("파일을 읽을 수 없습니다: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function buildSurveyPrompt() {
+    var sa = state.surveyAnswers;
+    var lines = [
+      "[OPIC 설문 결과 — T0 입력]",
+      "Part1 직업분야: " + sa.part1,
+      "Part2 학생여부: " + sa.part2Student,
+      "Part2 최근수강: " + sa.part2Edu,
+      "Part3 거주형태: " + sa.part3,
+      "Part4 일반주제(" + sa.part4.length + "): " + sa.part4.join(", "),
+      "Part5 돌발주제(" + sa.part5.length + "): " + sa.part5.join(", "),
+      "",
+      "위 내용으로 T0를 실행해서 20개 학습 주제와 예시 질문 80개를 만들어줘."
+    ];
+    return lines.join("\n");
+  }
+
+  function copySurveyPrompt() {
+    var btn = document.getElementById("btn-copy-survey");
+    var text = buildSurveyPrompt();
+
+    function showResult(ok) {
+      if (!btn) return;
+      btn.textContent = ok ? "복사됨!" : "복사 실패 — 다시 시도";
+      setTimeout(function () { if (btn) btn.textContent = "설문 결과 복사 (T0용)"; }, 1500);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showResult(true); }, function () { showResult(fallbackCopy(text)); });
+    } else {
+      showResult(fallbackCopy(text));
+    }
+  }
+
+  function parseT0Output(text) {
+    var parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e) {
+      return { error: "JSON 형식을 읽을 수 없어요: " + e.message };
+    }
+    if (!parsed || !Array.isArray(parsed.topics)) {
+      return { error: "'topics' 배열을 찾을 수 없어요. T0가 만든 JSON 전체를 그대로 붙여넣었는지 확인해주세요." };
+    }
+    if (parsed.topics.length !== 20) {
+      return { error: "주제가 20개가 아니라 " + parsed.topics.length + "개예요. T0에게 다시 확인을 요청해주세요." };
+    }
+    for (var i = 0; i < parsed.topics.length; i++) {
+      var t = parsed.topics[i];
+      var label = (t && t.name) || (i + 1) + "번째 항목";
+      if (!t || typeof t.name !== "string" || !t.name.trim()) {
+        return { error: (i + 1) + "번째 주제에 이름(name)이 없어요." };
+      }
+      if (!Array.isArray(t.questions) || t.questions.length !== 4) {
+        return { error: '"' + label + '" 주제의 질문이 4개가 아니에요.' };
+      }
+    }
+    return { topics: parsed.topics };
+  }
+
+  function parseT1Output(text) {
+    var parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e) {
+      return { error: "JSON 형식을 읽을 수 없어요: " + e.message };
+    }
+    if (!parsed || typeof parsed.topic !== "string" || !parsed.topic.trim()) {
+      return { error: "'topic'이 없어요. T1이 만든 JSON 전체를 그대로 붙여넣었는지 확인해주세요." };
+    }
+    if (typeof parsed.grade !== "string" || !parsed.grade.trim()) {
+      return { error: "'grade'(채점 등급)가 없어요." };
+    }
+    if (typeof parsed.scriptText !== "string" || !parsed.scriptText.trim()) {
+      return { error: "'scriptText'(수정된 스크립트)가 없어요." };
+    }
+    if (typeof parsed.originalScriptText !== "string" || !parsed.originalScriptText.trim()) {
+      return { error: "'originalScriptText'(최초 스크립트 원문)가 없어요 — T2가 나중에 수정량을 계산할 때 필요해요." };
+    }
+    if (!Array.isArray(parsed.expressions) || parsed.expressions.length === 0) {
+      return { error: "'expressions' 배열이 비어있어요." };
+    }
+    for (var i = 0; i < parsed.expressions.length; i++) {
+      var ex = parsed.expressions[i];
+      if (!ex || typeof ex.text !== "string" || !ex.text.trim()) {
+        return { error: (i + 1) + "번째 표현에 text가 없어요." };
+      }
+    }
+    var importantCount = parsed.expressions.filter(function (ex) { return ex.important; }).length;
+    if (importantCount === 0) {
+      return { error: "important: true인 표현이 하나도 없어요 — 사용자가 고른 5개를 표시해야 해요." };
+    }
+    return { data: parsed };
+  }
+
+  function applyT1Import(data) {
+    var today = fmtDate(new Date());
+    var existing = state.scripts.find(function (s) { return s.topic === data.topic; });
+    if (existing) {
+      existing.grade = data.grade;
+      existing.scriptText = data.scriptText;
+      existing.originalScriptText = data.originalScriptText;
+      existing.feedback = data.feedback || "";
+      existing.lastGradedAt = today;
+    } else {
+      state.scripts.push({
+        name: data.topic + " · " + today,
+        topic: data.topic,
+        masteryPct: 0,
+        reviewCount: 0,
+        createdAt: today,
+        lastGradedAt: today,
+        grade: data.grade,
+        scriptText: data.scriptText,
+        originalScriptText: data.originalScriptText,
+        feedback: data.feedback || ""
+      });
+    }
+    // 이번 채점의 표현 10개가 그 스크립트의 "현재" 표현 세트다 — 재채점(복습 모드)
+    // 시 이전 회차에만 있던 표현은 여기서 걸러낸다(스크립트가 topic당 1개로
+    // 덮어써지는 것과 같은 원칙). 이름이 겹치는 표현은 masteryPct 이력을 보존한다.
+    var newTexts = data.expressions.map(function (ex) { return ex.text; });
+    state.expressions = state.expressions.filter(function (e) {
+      return e.topic !== data.topic || newTexts.indexOf(e.name) !== -1;
+    });
+    data.expressions.forEach(function (ex) {
+      var existingExpr = state.expressions.find(function (e) { return e.topic === data.topic && e.name === ex.text; });
+      if (existingExpr) {
+        existingExpr.important = existingExpr.important || !!ex.important;
+      } else {
+        state.expressions.push({
+          name: ex.text,
+          topic: data.topic,
+          masteryPct: 0,
+          createdAt: today,
+          important: !!ex.important
+        });
+      }
+    });
+    var cur = state.progressBoard[data.topic] || 0;
+    state.progressBoard[data.topic] = Math.max(cur, 2);
+    save();
+  }
+
+  var VALID_PCT = [0, 25, 50, 75, 100];
+
+  function parseReviewOutput(text) {
+    var parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e) {
+      return { error: "JSON 형식을 읽을 수 없어요: " + e.message };
+    }
+    if (!parsed || typeof parsed.topic !== "string" || !parsed.topic.trim()) {
+      return { error: "'topic'이 없어요. T2가 만든 JSON 전체를 그대로 붙여넣었는지 확인해주세요." };
+    }
+    if (typeof parsed.masteryPct !== "number" || VALID_PCT.indexOf(parsed.masteryPct) === -1) {
+      return { error: "'masteryPct'는 0/25/50/75/100 중 하나여야 해요." };
+    }
+    var script = state.scripts.find(function (s) { return s.topic === parsed.topic; });
+    if (!script) {
+      return { error: '"' + parsed.topic + '" 주제의 저장된 스크립트를 찾을 수 없어요 — 먼저 T1으로 채점을 마쳐야 해요.' };
+    }
+    if (parsed.expressionResults !== undefined) {
+      if (!Array.isArray(parsed.expressionResults)) {
+        return { error: "'expressionResults'는 배열이어야 해요." };
+      }
+      for (var i = 0; i < parsed.expressionResults.length; i++) {
+        var r = parsed.expressionResults[i];
+        if (!r || typeof r.text !== "string" || !r.text.trim()) {
+          return { error: (i + 1) + "번째 표현 결과에 'text'가 없어요." };
+        }
+        if (typeof r.masteryPct !== "number" || VALID_PCT.indexOf(r.masteryPct) === -1) {
+          return { error: '"' + r.text + '" 표현의 masteryPct는 0/25/50/75/100 중 하나여야 해요.' };
+        }
+      }
+    }
+    if (parsed.avgExpressionMastery !== undefined && VALID_PCT.indexOf(parsed.avgExpressionMastery) === -1) {
+      return { error: "'avgExpressionMastery'는 0/25/50/75/100 중 하나여야 해요." };
+    }
+    return { data: parsed };
+  }
+
+  function applyReviewImport(data) {
+    var script = state.scripts.find(function (s) { return s.topic === data.topic; });
+    script.masteryPct = data.masteryPct;
+    script.reviewCount = (script.reviewCount || 0) + 1;
+    script.lastReviewedAt = fmtDate(new Date());
+    script.lastReviewNote = data.note || "";
+    if (Array.isArray(data.expressionResults)) {
+      var today = fmtDate(new Date());
+      data.expressionResults.forEach(function (r) {
+        var expr = state.expressions.find(function (e) { return e.topic === data.topic && e.name === r.text; });
+        if (!expr) return;
+        expr.masteryPct = r.masteryPct;
+        expr.lastTestedAt = today;
+      });
+    }
+    if (typeof data.avgExpressionMastery === "number") {
+      script.exprAvgMasteryPct = data.avgExpressionMastery;
+    }
+    save();
+  }
+
+  var VALID_DECISIONS = ["weekend_makeup", "push_deadline"];
+
+  function parseT6Output(text) {
+    var parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e) {
+      return { error: "JSON 형식을 읽을 수 없어요: " + e.message };
+    }
+    if (!parsed || typeof parsed.date !== "string" || !parsed.date.trim()) {
+      return { error: "'date'가 없어요. T6가 만든 JSON 전체를 그대로 붙여넣었는지 확인해주세요." };
+    }
+    if (typeof parsed.completedNewScript !== "boolean") {
+      return { error: "'completedNewScript'는 true/false여야 해요." };
+    }
+    if (!parsed.completedNewScript) {
+      if (VALID_DECISIONS.indexOf(parsed.decision) === -1) {
+        return { error: "'decision'은 'weekend_makeup' 또는 'push_deadline' 중 하나여야 해요(미달성일 때는 null일 수 없어요)." };
+      }
+    }
+    return { data: parsed };
+  }
+
+  function applyT6Import(data) {
+    var entry = {
+      date: data.date,
+      studyMinutes: typeof data.studyMinutes === "number" ? data.studyMinutes : null,
+      completedNewScript: data.completedNewScript,
+      achievementNote: data.achievementNote || "",
+      goodPoints: data.goodPoints || "",
+      improvements: data.improvements || "",
+      decision: data.decision || null
+    };
+    var existing = state.logs.find(function (l) { return l.date === data.date; });
+    if (existing) {
+      for (var k in entry) existing[k] = entry[k];
+    } else {
+      state.logs.push(entry);
+    }
+    if (data.decision === "weekend_makeup") {
+      state.schedule = extendScheduleByWeekendMakeup(state.schedule, data.date);
+    } else if (data.decision === "push_deadline") {
+      state.schedule = extendScheduleByPushingDeadline(state.schedule, data.date);
+    }
+    save();
+  }
+
+  function buildRetroPrompt() {
+    var todayStr = fmtDate(new Date());
+    var todayEntry = state.schedule.byDate[todayStr];
+    var hasNew = todayEntry && todayEntry.newTopics && todayEntry.newTopics.length;
+    var lines = ["[OPIC 어시스턴트] 오늘의 회고 — " + todayStr, ""];
+    if (hasNew) {
+      lines.push("오늘 배정된 신규 학습 주제: " + todayEntry.newTopics.join(", "));
+    } else {
+      lines.push("오늘 배정된 신규 학습 주제: 없음");
+    }
+    lines.push("");
+    lines.push("(오늘 공부 시간, 잘한 점, 개선점" + (hasNew ? ", 그리고 위 신규 학습을 다 끝냈는지" : "") + "를 알려주면 T6가 회고를 정리해줘. 못 끝냈으면 일정을 어떻게 조정할지도 같이 정해줘.)");
+    return lines.join("\n");
+  }
+
+  function buildTodaySummaryPrompt() {
+    var todayStr = fmtDate(new Date());
+    var lines = ["[OPIC 어시스턴트] 오늘 세션 요약 — " + todayStr, ""];
+
+    var touchedScripts = state.scripts.filter(function (s) {
+      return s.lastGradedAt === todayStr || s.lastReviewedAt === todayStr;
+    });
+    if (touchedScripts.length) {
+      lines.push("오늘 채점/복습한 스크립트:");
+      touchedScripts.forEach(function (s) {
+        lines.push("- " + s.topic + " · 채점 등급 " + (s.grade || "-") + " · 체화 정도 " + s.masteryPct + "%" +
+          (s.exprAvgMasteryPct != null ? " · 표현 평균 체화도 " + s.exprAvgMasteryPct + "%" : ""));
+      });
+    } else {
+      lines.push("오늘 채점/복습한 스크립트: 없음");
+    }
+    lines.push("");
+
+    var todayLog = state.logs.find(function (l) { return l.date === todayStr; });
+    if (todayLog) {
+      lines.push("오늘 회고: 공부 시간 " + (todayLog.studyMinutes != null ? todayLog.studyMinutes + "분" : "미기록") +
+        ", 신규 학습 " + (todayLog.completedNewScript ? "완료" : "미완료"));
+      if (todayLog.achievementNote) lines.push("달성도: " + todayLog.achievementNote);
+    } else {
+      lines.push("오늘 회고: 아직 기록 없음");
+    }
+    lines.push("");
+    lines.push("(위 내용으로 T7을 실행해서 Notion 대본/표현/기록 DB에 반영해줘.)");
+    return lines.join("\n");
+  }
+
+  function applyT0Import(topics) {
+    var map = {};
+    var names = [];
+    topics.forEach(function (t) {
+      map[t.name] = { category: t.category || "", questions: t.questions, roleplayFormat: t.roleplayFormat || null, sourceTopic: t.sourceTopic || null };
+      names.push(t.name);
+    });
+    state.topicQuestions = map;
+    state._t0TopicNames = names;
+    delete state._scheduleDraft;
+    save();
+  }
+
+  function buildTodayPrompt(todayStr) {
+    var todayEntry = state.schedule.byDate[todayStr];
+    var lines = ["[OPIC 어시스턴트] " + todayStr + " 학습 세션", ""];
+
+    if (todayEntry && todayEntry.newTopics.length) {
+      lines.push("오늘의 신규 학습 주제:");
+      todayEntry.newTopics.forEach(function (t, i) {
+        lines.push((i + 1) + ". " + t);
+        var tq = state.topicQuestions && state.topicQuestions[t];
+        if (tq && tq.questions) {
+          tq.questions.forEach(function (q, qi) { lines.push("   Q" + (qi + 1) + ". " + q); });
+        }
+      });
+      lines.push("");
+      lines.push("(스크립트를 다 쓰면, 주제·위 질문 중 어떤 걸 답했는지·스크립트를 함께 붙여넣어 T1 채점을 요청해줘.)");
+    } else {
+      lines.push("오늘의 신규 학습 주제: 없음" + (state.schedule.reviewOnlyDays.indexOf(todayStr) !== -1 ? " (복습·모의고사 주간)" : ""));
+    }
+    lines.push("");
+
+    if (todayEntry && todayEntry.reviewTopics.length) {
+      lines.push("오늘의 복습 대상:");
+      todayEntry.reviewTopics.forEach(function (r) {
+        lines.push("- " + r.topic + " (" + (r.type === "3day" ? "+3일" : "+7일") + " 복습, " + r.learnedOn + " 학습분)");
+      });
+    } else {
+      lines.push("오늘의 복습 대상: 없음");
+    }
+    lines.push("");
+    lines.push("위 내용으로 오늘 신규 학습(대본 작성·표현 추출)과 복습을 진행해줘.");
+    return lines.join("\n");
+  }
+
+  function fallbackCopy(text) {
+    var ok = false;
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+    } catch (e) { ok = false; }
+    return ok;
+  }
+
+  function buildReviewPrompt(topic) {
+    var script = state.scripts.find(function (s) { return s.topic === topic; });
+    var lines = ["[OPIC 어시스턴트] 복습 정보 — " + topic, ""];
+    if (!script) {
+      lines.push("이 주제의 저장된 스크립트를 찾을 수 없어요 — T1으로 먼저 채점을 마쳐야 복습 정보가 쌓입니다.");
+      return lines.join("\n");
+    }
+    lines.push("직전 채점 등급: " + script.grade);
+    lines.push("");
+    lines.push("최초 스크립트:");
+    lines.push(script.originalScriptText || "(기록 없음)");
+    lines.push("");
+    lines.push("수정된 스크립트:");
+    lines.push(script.scriptText);
+    lines.push("");
+    var importantExprs = state.expressions.filter(function (e) { return e.topic === topic && e.important; });
+    lines.push("주요 표현 " + importantExprs.length + "개:");
+    importantExprs.forEach(function (e, i) { lines.push((i + 1) + ". " + e.name); });
+    lines.push("");
+    lines.push("(위 정보와 함께, 오늘 다시 말해본 스크립트를 전사해서 붙여넣어줘. T2가 체화 정도를 계산한 뒤 위 주요 표현들을 이어서 테스트하고, 틀린 건 재도전까지 시켜서 표현 평균까지 한 번에 내줄 거야. 끝나면 나오는 JSON 하나만 대시보드에 붙여넣으면 돼. 복습 모드로 T1 채점도 같이 받고 싶으면 그것도 요청해도 돼.)");
+    return lines.join("\n");
+  }
+
+  function copyReviewPrompt(topic, btn) {
+    var text = buildReviewPrompt(topic);
+    var originalLabel = btn ? btn.textContent : "";
+
+    function showResult(ok) {
+      if (!btn) return;
+      btn.textContent = ok ? "복사됨!" : "복사 실패 — 다시 시도";
+      setTimeout(function () { if (btn) btn.textContent = originalLabel; }, 1500);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showResult(true); }, function () { showResult(fallbackCopy(text)); });
+    } else {
+      showResult(fallbackCopy(text));
+    }
+  }
+
+  function copyTodayPrompt() {
+    var btn = document.getElementById("btn-copy-today");
+    var text = buildTodayPrompt(fmtDate(new Date()));
+
+    function showResult(ok) {
+      if (!btn) return;
+      btn.textContent = ok ? "복사됨!" : "복사 실패 — 다시 시도";
+      setTimeout(function () { if (btn) btn.textContent = "오늘 프롬프트 복사"; }, 1500);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showResult(true); }, function () { showResult(fallbackCopy(text)); });
+    } else {
+      showResult(fallbackCopy(text));
+    }
+  }
+
+  function copyRetroPrompt() {
+    var btn = document.getElementById("btn-copy-retro");
+    var text = buildRetroPrompt();
+
+    function showResult(ok) {
+      if (!btn) return;
+      btn.textContent = ok ? "복사됨!" : "복사 실패 — 다시 시도";
+      setTimeout(function () { if (btn) btn.textContent = "회고 시작하기 복사"; }, 1500);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showResult(true); }, function () { showResult(fallbackCopy(text)); });
+    } else {
+      showResult(fallbackCopy(text));
+    }
+  }
+
+  function copyTodaySummaryPrompt() {
+    var btn = document.getElementById("btn-copy-t7");
+    var text = buildTodaySummaryPrompt();
+
+    function showResult(ok) {
+      if (!btn) return;
+      btn.textContent = ok ? "복사됨!" : "복사 실패 — 다시 시도";
+      setTimeout(function () { if (btn) btn.textContent = "오늘 세션 요약 복사"; }, 1500);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showResult(true); }, function () { showResult(fallbackCopy(text)); });
+    } else {
+      showResult(fallbackCopy(text));
+    }
+  }
+
+  function renderDashboard(tab) {
+    if (tab === "scripts") return renderDbView("scripts");
+    if (tab === "expressions") return renderDbView("expressions");
+    return renderMainDashboard();
+  }
+
+  function renderMainDashboard() {
+    var todayStr = fmtDate(new Date());
+    var todayEntry = state.schedule.byDate[todayStr];
+    var topics = state.schedule.topics;
+
+    var boardHtml = '<div class="board-cols">' + STAGES.map(function (label, idx) {
+      var cards = topics.filter(function (t) { return topStageIdx(t) === idx; });
+      return '<div class="board-col"><h5>' + label + '<span>' + cards.length + "</span></h5>" +
+        cards.map(function (t) {
+          return '<div class="board-card stage-' + idx + '" data-topic="' + escapeHtml(t) + '">' + escapeHtml(t) + "</div>";
+        }).join("") + "</div>";
+    }).join("") + "</div>";
+
+    var schedRows = state.schedule.allDays.map(function (dateStr) {
+      var entry = state.schedule.byDate[dateStr];
+      var d = parseISO(dateStr);
+      var isToday = dateStr === todayStr;
+      var content = "";
+      if (entry.restWeek) content += '<span class="pill pill-restweek">복습 · 모의고사</span>';
+      entry.newTopics.forEach(function (t) { content += '<span class="pill pill-new">' + escapeHtml(t) + "</span>"; });
+      entry.reviewTopics.forEach(function (r) { content += '<span class="pill pill-review">' + escapeHtml(r.topic) + " (" + (r.type === "3day" ? "+3일" : "+7일") + ")</span>"; });
+      return '<tr class="' + (isToday ? "today" : "") + '"><td class="tabular">' + dateStr + " (" + WEEKDAY_KO[d.getDay()] + ")</td><td>" + content + "</td></tr>";
+    }).join("");
+
+    var todayLearnHtml = "";
+    if (todayEntry && todayEntry.newTopics.length) {
+      todayLearnHtml = todayEntry.newTopics.map(function (topic, i) {
+        var tq = state.topicQuestions && state.topicQuestions[topic];
+        var questions = tq ? tq.questions : null;
+        return '<div class="q-topic"><div class="topic-name">' + escapeHtml(topic) + '</div>' +
+          '<span class="rec">추천 질문 1개 + 예비 3개</span>' +
+          '<ul class="q-list">' +
+          (questions
+            ? questions.map(function (q, n) {
+                return '<li><span class="qn">Q' + (n + 1) + "</span>" + escapeHtml(q) + "</li>";
+              }).join("")
+            : [1, 2, 3, 4].map(function (n) {
+                return '<li class="placeholder"><span class="qn">Q' + n + "</span>예시 질문 준비 중 — T0 생성 후 가져오기 필요</li>";
+              }).join("")
+          ) +
+          "</ul></div>";
+      }).join("");
+    } else {
+      todayLearnHtml = '<div class="empty-note">오늘은 신규 학습 배정이 없습니다' + (state.schedule.reviewOnlyDays.indexOf(todayStr) !== -1 ? " — 복습 · 모의고사 주간이에요." : ".") + "</div>";
+    }
+
+    var todayReviewHtml = "";
+    if (todayEntry && todayEntry.reviewTopics.length) {
+      todayReviewHtml = todayEntry.reviewTopics.map(function (r) {
+        var script = state.scripts.find(function (s) { return s.topic === r.topic; });
+        var masteryLabel = script ? ("현재 체화 " + script.masteryPct + "%") : "저장된 스크립트 없음 — 먼저 T1으로 채점 필요";
+        return '<div class="review-card"><span class="rtype ' + (r.type === "3day" ? "day3" : "day7") + '">' + (r.type === "3day" ? "+3일 복습" : "+7일 복습") + "</span>" +
+          '<div class="topic-name" style="margin-top:8px;">' + escapeHtml(r.topic) + "</div>" +
+          '<div class="subtle">' + r.learnedOn + " 학습분 · " + masteryLabel + "</div>" +
+          '<div class="row-actions" style="margin-top:10px;"><span></span><button class="btn btn-ghost btn-sm" data-copy-review="' + escapeHtml(r.topic) + '"' + (script ? "" : " disabled") + '>복습 정보 복사</button></div></div>';
+      }).join("");
+    } else {
+      todayReviewHtml = '<div class="empty-note">오늘 복습 대상이 없습니다.</div>';
+    }
+
+    app.innerHTML = navBar("dashboard") +
+      '<div class="grid-2">' +
+      '<div>' +
+      '<div class="card" style="margin-bottom:20px;">' +
+      '<div class="eyebrow">학습 진행보드</div><h2 class="title-md">주제 ' + topics.length + '개 · 4단계</h2>' +
+      '<p class="subtle" style="margin-bottom:16px;">카드를 클릭하면 다음 단계로 넘어갑니다.</p>' +
+      boardHtml + "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">스케줄 표</div><h2 class="title-md">3주 전체 일정</h2>' +
+      '<div class="sched-wrap" style="max-height:420px; overflow-y:auto;"><table class="sched"><thead><tr><th>날짜</th><th>내용</th></tr></thead><tbody>' + schedRows + "</tbody></table></div>" +
+      "</div>" +
+      "</div>" +
+      '<div class="today-panel">' +
+      '<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">' +
+      '<div><div class="eyebrow" style="margin-bottom:2px;">오늘의 프롬프트</div><div class="subtle">Claude 대화창에 붙여넣어 T0~T7 시작</div></div>' +
+      '<button class="btn btn-primary btn-sm" id="btn-copy-today">오늘 프롬프트 복사</button>' +
+      "</div>" +
+      '<div class="card"><div class="eyebrow">오늘의 학습</div><h2 class="title-md">' + todayStr + "</h2>" + todayLearnHtml + "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">T1 결과 가져오기</div><h2 class="title-md" style="margin-bottom:8px;">채점 끝난 스크립트 저장</h2>' +
+      '<p class="subtle" style="margin-bottom:14px;">T1이 만들어준 JSON(주제·등급·수정된 스크립트·표현 5개 선택 포함)을 붙여넣으면 대본·표현 DB와 학습 진행보드에 반영돼요.</p>' +
+      '<div class="field"><textarea id="t1-paste" rows="6" placeholder=\'{"topic": "...", "grade": "...", "scriptText": "...", "feedback": "...", "expressions": [{"text": "...", "important": true}, ...]}\'></textarea></div>' +
+      '<div class="field-error" id="t1-import-error"></div>' +
+      '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-primary btn-sm" id="btn-import-t1">가져오기</button></div>' +
+      "</div>" +
+      '<div class="card"><div class="eyebrow">오늘의 복습</div><h2 class="title-md">에빙하우스 기준</h2>' + todayReviewHtml + "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">복습 결과 가져오기 (T2~T5)</div><h2 class="title-md" style="margin-bottom:8px;">체화 정도 · 표현 평균 갱신</h2>' +
+      '<p class="subtle" style="margin-bottom:14px;">T2가 만들어준 JSON을 붙여넣으면 대본의 체화 정도가 갱신돼요. 표현 테스트까지 이어서 진행했다면(expressionResults·avgExpressionMastery 포함) 표현 DB와 표현 평균 체화도까지 한 번에 갱신됩니다.</p>' +
+      '<div class="field"><textarea id="review-paste" rows="6" placeholder=\'{"topic": "...", "masteryPct": 75, "note": "...", "expressionResults": [{"text": "...", "masteryPct": 100}], "avgExpressionMastery": 88}\'></textarea></div>' +
+      '<div class="field-error" id="review-import-error"></div>' +
+      '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-primary btn-sm" id="btn-import-review">가져오기</button></div>' +
+      "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">오늘 회고 (T6)</div><h2 class="title-md" style="margin-bottom:8px;">하루 마무리하기</h2>' +
+      '<p class="subtle" style="margin-bottom:14px;">아래 버튼으로 회고 프롬프트를 복사해 Claude에게 보내면, 오늘 신규 학습을 못 끝냈을 때 일정 조정(주말 보충 vs 목표일 연장)까지 같이 정해줘요. 끝나면 나오는 JSON을 붙여넣으면 기록되고, 필요하면 일정도 갱신돼요.</p>' +
+      '<div class="row-actions" style="margin-top:0; margin-bottom:14px;"><span></span><button class="btn btn-ghost btn-sm" id="btn-copy-retro">회고 시작하기 복사</button></div>' +
+      '<div class="field"><textarea id="t6-paste" rows="5" placeholder=\'{"date": "...", "studyMinutes": 45, "completedNewScript": true, "achievementNote": "...", "goodPoints": "...", "improvements": "...", "decision": null}\'></textarea></div>' +
+      '<div class="field-error" id="t6-import-error"></div>' +
+      '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-primary btn-sm" id="btn-import-t6">가져오기</button></div>' +
+      "</div>" +
+      '<div class="card">' +
+      '<div class="eyebrow">오늘 세션 Notion 반영 (T7)</div><h2 class="title-md" style="margin-bottom:8px;">Notion에 기록하기</h2>' +
+      '<p class="subtle" style="margin-bottom:14px;">오늘 갱신된 스크립트·회고를 모아 프롬프트로 만들어줘요. Claude에게 보내면 T7이 Notion 대본/표현/기록 DB에 반영해요(대시보드로 되돌아올 결과는 없어요).</p>' +
+      '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-ghost btn-sm" id="btn-copy-t7">오늘 세션 요약 복사</button></div>' +
+      "</div>" +
+      "</div>" +
+      "</div>";
+
+    bindNav();
+    Array.prototype.forEach.call(app.querySelectorAll(".board-card"), function (el) {
+      el.addEventListener("click", function () { cycleStage(el.getAttribute("data-topic")); });
+    });
+    Array.prototype.forEach.call(app.querySelectorAll("[data-copy-review]"), function (el) {
+      el.addEventListener("click", function () { copyReviewPrompt(el.getAttribute("data-copy-review"), el); });
+    });
+    document.getElementById("btn-copy-today").addEventListener("click", copyTodayPrompt);
+    document.getElementById("btn-import-t1").addEventListener("click", function () {
+      var text = document.getElementById("t1-paste").value.trim();
+      var errEl = document.getElementById("t1-import-error");
+      if (!text) { errEl.textContent = "붙여넣을 내용이 없어요."; return; }
+      var result = parseT1Output(text);
+      if (result.error) { errEl.textContent = result.error; return; }
+      applyT1Import(result.data);
+      render();
+    });
+    document.getElementById("btn-import-review").addEventListener("click", function () {
+      var text = document.getElementById("review-paste").value.trim();
+      var errEl = document.getElementById("review-import-error");
+      if (!text) { errEl.textContent = "붙여넣을 내용이 없어요."; return; }
+      var result = parseReviewOutput(text);
+      if (result.error) { errEl.textContent = result.error; return; }
+      applyReviewImport(result.data);
+      render();
+    });
+    document.getElementById("btn-copy-retro").addEventListener("click", copyRetroPrompt);
+    document.getElementById("btn-import-t6").addEventListener("click", function () {
+      var text = document.getElementById("t6-paste").value.trim();
+      var errEl = document.getElementById("t6-import-error");
+      if (!text) { errEl.textContent = "붙여넣을 내용이 없어요."; return; }
+      var result = parseT6Output(text);
+      if (result.error) { errEl.textContent = result.error; return; }
+      applyT6Import(result.data);
+      render();
+    });
+    document.getElementById("btn-copy-t7").addEventListener("click", copyTodaySummaryPrompt);
+  }
+
+  function renderDbView(kind) {
+    var items = state[kind];
+    var topics = state.schedule ? state.schedule.topics : [];
+    var filterTopic = state["_filterTopic_" + kind] || "";
+    var filterPct = state["_filterPct_" + kind] || "";
+
+    var filtered = items.filter(function (it) {
+      if (filterTopic && it.topic !== filterTopic) return false;
+      if (filterPct !== "" && String(it.masteryPct) !== filterPct) return false;
+      return true;
+    });
+
+    var title = kind === "scripts" ? "3-1 · 전체 스크립트 보기" : "3-2 · 전체 표현 보기";
+    var isScripts = kind === "scripts";
+    var rows = filtered.map(function (it) {
+      var exprAvgCell = isScripts ? '<td class="tabular">' + (it.exprAvgMasteryPct != null ? it.exprAvgMasteryPct + "%" : "—") + "</td>" : "";
+      return "<tr><td>" + escapeHtml(it.name || "") + "</td><td>" + escapeHtml(it.topic || "") + '</td><td class="tabular">' + (it.masteryPct != null ? it.masteryPct + "%" : "—") + "</td>" + exprAvgCell + "<td>" + (it.createdAt || "") + "</td></tr>";
+    }).join("");
+
+    app.innerHTML = navBar(kind) +
+      '<div class="card">' +
+      '<div class="eyebrow">' + title + '</div>' +
+      '<h1 class="title-lg">' + (kind === "scripts" ? "대본" : "표현") + " (열람 전용)</h1>" +
+      '<div class="filter-bar">' +
+      '<select id="filt-topic"><option value="">전체 주제</option>' + topics.map(function (t) { return '<option value="' + escapeHtml(t) + '" ' + (filterTopic === t ? "selected" : "") + ">" + escapeHtml(t) + "</option>"; }).join("") + "</select>" +
+      '<select id="filt-pct"><option value="">전체 체화 정도</option>' + VALID_PCT.map(function (p) { return '<option value="' + p + '" ' + (filterPct === String(p) ? "selected" : "") + ">" + p + "%</option>"; }).join("") + "</select>" +
+      "</div>" +
+      (filtered.length
+        ? '<table class="db"><thead><tr><th>이름</th><th>주제</th><th>체화 정도</th>' + (isScripts ? "<th>표현 평균 체화도</th>" : "") + "<th>작성일</th></tr></thead><tbody>" + rows + "</tbody></table>"
+        : '<div class="empty-note">아직 데이터가 없습니다. Claude와의 대화(T1~T7)에서 스크립트/표현을 만들면 여기 쌓입니다.</div>') +
+      "</div>";
+
+    bindNav();
+    document.getElementById("filt-topic").addEventListener("change", function (e) {
+      state["_filterTopic_" + kind] = e.target.value; render();
+    });
+    document.getElementById("filt-pct").addEventListener("change", function (e) {
+      state["_filterPct_" + kind] = e.target.value; render();
+    });
+  }
+
+  render();
+})();
+</script>
