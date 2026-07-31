@@ -7,6 +7,7 @@ const t1Router = require("./routes/t1");
 const t2Router = require("./routes/t2");
 const t3Router = require("./routes/t3");
 const t6Router = require("./routes/t6");
+const t7Router = require("./routes/t7");
 
 const app = express();
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "*" }));
@@ -19,6 +20,7 @@ app.use("/api/t1", t1Router);
 app.use("/api/t2", t2Router);
 app.use("/api/t3", t3Router);
 app.use("/api/t6", t6Router);
+app.use("/api/t7", t7Router);
 
 // Centralized error handler — never leak internals like the API key or stack traces to the client.
 app.use((err, req, res, next) => {

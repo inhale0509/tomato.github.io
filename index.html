@@ -1452,6 +1452,95 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
     });
   }
 
+  var t7Record = null;
+
+  function buildT7Record() {
+    var today = fmtDate(new Date());
+    var scripts = state.scripts.filter(function (s) { return s.lastGradedAt === today || s.lastReviewedAt === today; })
+      .map(function (s) { return { topic: s.topic, grade: s.grade, masteryPct: s.masteryPct, exprAvgMasteryPct: s.exprAvgMasteryPct }; });
+    var expressions = state.expressions.filter(function (e) { return e.createdAt === today || e.lastTestedAt === today; })
+      .map(function (e) { return { text: e.name, topic: e.topic, masteryPct: e.masteryPct, important: e.important }; });
+    var log = state.logs.find(function (l) { return l.date === today; });
+    var retro = log ? { studyMinutes: log.studyMinutes, completedNewScript: log.completedNewScript, achievementNote: log.achievementNote, goodPoints: log.goodPoints, improvements: log.improvements, decision: log.decision } : null;
+    var todayEntry = state.schedule.byDate[today];
+    var topicsToday = [];
+    if (todayEntry) {
+      todayEntry.newTopics.forEach(function (t) { if (topicsToday.indexOf(t) === -1) topicsToday.push(t); });
+      todayEntry.reviewTopics.forEach(function (r) { if (topicsToday.indexOf(r.topic) === -1) topicsToday.push(r.topic); });
+    }
+    return { date: today, scripts: scripts, expressions: expressions, retro: retro, topicsToday: topicsToday };
+  }
+
+  function requestT7Propose() {
+    var box = document.getElementById("t7-result");
+    var record = buildT7Record();
+    if (!record.scripts.length && !record.expressions.length && !record.retro) {
+      box.innerHTML = '<p class="subtle">오늘 아직 반영할 내용(스크립트/표현/회고)이 없어요.</p>';
+      return;
+    }
+    box.innerHTML = '<p class="subtle">확인 중...</p>';
+    fetch(API_BASE_URL + "/api/t7/propose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ record: record }),
+    })
+      .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.error ? r.body.error : "미리보기 요청이 실패했어요.");
+        t7Record = record;
+        renderT7Result(r.body);
+      })
+      .catch(function (e) {
+        box.innerHTML = '<p class="field-error">미리보기 실패: ' + escapeHtml(e.message) + " (백엔드가 꺼져 있으면 아래 요약 복사를 이용하세요.)</p>";
+      });
+  }
+
+  function renderT7Result(body) {
+    var box = document.getElementById("t7-result");
+    if (body.status === "not_connected") {
+      box.innerHTML = '<p class="subtle">' + escapeHtml(body.message) + "</p><pre>" + escapeHtml(JSON.stringify(body.manualSummary, null, 2)) + "</pre>";
+      return;
+    }
+    if (body.status === "db_not_resolved") {
+      box.innerHTML = '<p class="field-error">' + escapeHtml(body.message) + "</p>" +
+        (body.missing.length ? "<p>못 찾음: " + body.missing.map(escapeHtml).join(", ") + "</p>" : "") +
+        (Object.keys(body.ambiguous).length ? "<p>후보 여럿: " + escapeHtml(JSON.stringify(body.ambiguous)) + "</p>" : "");
+      return;
+    }
+    var rows = body.targets.map(function (t) {
+      return "<li><strong>[" + escapeHtml(t.db) + "] " + escapeHtml(t.label) + "</strong></li>";
+    }).join("");
+    var warnings = (body.warnings || []).map(function (w) { return "<li>" + escapeHtml(w) + "</li>"; }).join("");
+    box.innerHTML =
+      '<div class="card" style="margin-top:12px; background:var(--surface-2, #f7f7f8);">' +
+      '<div class="eyebrow">이렇게 반영될 예정이에요</div><ul>' + rows + "</ul>" +
+      (warnings ? '<div class="eyebrow" style="margin-top:8px;">참고</div><ul>' + warnings + "</ul>" : "") +
+      '<div class="field-error" id="t7-execute-error"></div>' +
+      '<div class="row-actions" style="margin-top:10px;"><span></span><button class="btn btn-primary btn-sm" id="btn-t7-execute">이대로 Notion에 반영</button></div>' +
+      "</div>";
+    document.getElementById("btn-t7-execute").addEventListener("click", executeT7);
+  }
+
+  function executeT7() {
+    var errEl = document.getElementById("t7-execute-error");
+    fetch(API_BASE_URL + "/api/t7/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ record: t7Record, confirmed: true }),
+    })
+      .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.error ? r.body.error : "반영이 실패했어요.");
+        var box = document.getElementById("t7-result");
+        var rows = r.body.results.map(function (res) {
+          return "<li>" + (res.ok ? "✅ " : "❌ ") + escapeHtml(res.label) + (res.ok ? "" : " — " + escapeHtml(res.error)) + "</li>";
+        }).join("");
+        box.innerHTML = '<div class="card" style="margin-top:12px;"><div class="eyebrow">반영 결과</div><ul>' + rows + "</ul></div>";
+        t7Record = null;
+      })
+      .catch(function (e) { errEl.textContent = "반영 실패: " + e.message; });
+  }
+
   function parseT6Output(text) {
     var parsed;
     try {
@@ -1813,7 +1902,10 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
       "</div>" +
       '<div class="card">' +
       '<div class="eyebrow">오늘 세션 Notion 반영 (T7)</div><h2 class="title-md" style="margin-bottom:8px;">Notion에 기록하기</h2>' +
-      '<p class="subtle" style="margin-bottom:14px;">오늘 갱신된 스크립트·회고를 모아 프롬프트로 만들어줘요. Claude에게 보내면 T7이 Notion 대본/표현/기록 DB에 반영해요(대시보드로 되돌아올 결과는 없어요).</p>' +
+      '<p class="subtle" style="margin-bottom:14px;">오늘 갱신된 스크립트·표현·회고를 모아 Notion에 쓸 내용을 미리 보여줘요. 확인 후 승인해야만 실제로 반영됩니다.</p>' +
+      '<div class="row-actions" style="margin-top:0; margin-bottom:14px;"><span></span><button class="btn btn-primary btn-sm" id="btn-t7-propose">Notion 반영 미리보기</button></div>' +
+      '<div id="t7-result"></div>' +
+      '<div class="row-actions" style="margin-top:16px; margin-bottom:6px;"><span class="subtle">— 또는 Claude 대화창용 요약 복사 —</span></div>' +
       '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-ghost btn-sm" id="btn-copy-t7">오늘 세션 요약 복사</button></div>' +
       "</div>" +
       "</div>" +
@@ -1830,6 +1922,7 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
     document.getElementById("btn-request-t1-grade").addEventListener("click", requestT1Grade);
     document.getElementById("btn-request-t2").addEventListener("click", requestT2);
     document.getElementById("btn-request-t6").addEventListener("click", requestT6);
+    document.getElementById("btn-t7-propose").addEventListener("click", requestT7Propose);
     document.getElementById("btn-import-t1").addEventListener("click", function () {
       var text = document.getElementById("t1-paste").value.trim();
       var errEl = document.getElementById("t1-import-error");
