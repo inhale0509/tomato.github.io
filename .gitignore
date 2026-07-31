@@ -9,3 +9,5 @@ backend/.env
 !.claude/skills/
 !.claude/skills/t0-topic-generator/
 !.claude/skills/t0-topic-generator/**
+!.claude/skills/t1-script-grader/
+!.claude/skills/t1-script-grader/**
