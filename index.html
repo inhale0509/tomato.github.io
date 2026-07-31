@@ -247,6 +247,7 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
 (function () {
   "use strict";
   var STORAGE_KEY = "opicAssistantData";
+  var API_BASE_URL = "https://opic-assistant.onrender.com";
 
   var PART1 = ["사업/회사", "재택근무/사업", "교사/교육자", "일 경험 없음"];
   var PART2_EDU = ["학위 과정", "전문 기술 학습", "어학 수업", "5년 이상 경과", "없음"];
@@ -635,14 +636,17 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
         brand() + stepTrack(1) +
         '<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">' +
         '<div><div class="eyebrow" style="margin-bottom:2px;">1단계</div>' +
-        '<h2 class="title-md" style="margin-bottom:4px;">설문 결과를 복사해 Claude에게 붙여넣으세요</h2>' +
-        '<p class="subtle">Part1~5 답변을 정해진 포맷으로 복사합니다. T0가 이걸 받아 20개 학습 주제 + 예시 질문 80개를 만들어줘요.</p></div>' +
-        '<button class="btn btn-primary btn-sm" id="btn-copy-survey" style="flex-shrink:0;">설문 결과 복사 (T0용)</button>' +
+        '<h2 class="title-md" style="margin-bottom:4px;">주제·질문을 바로 생성하거나, 직접 복사해서 붙여넣으세요</h2>' +
+        '<p class="subtle">"생성 요청"은 백엔드가 대신 Claude를 호출해 바로 결과를 채워줍니다. 백엔드가 없으면 아래 수동 복사/붙여넣기를 쓰면 됩니다.</p></div>' +
+        '<span style="display:flex; gap:8px; flex-shrink:0;">' +
+        '<button class="btn btn-primary btn-sm" id="btn-generate-t0">생성 요청</button>' +
+        '<button class="btn btn-ghost btn-sm" id="btn-copy-survey">설문 결과 복사 (T0용)</button>' +
+        "</span>" +
         "</div>" +
         '<div class="card">' +
         '<div class="eyebrow">2단계 · 1-3 · T0 결과 가져오기</div>' +
         '<h1 class="title-lg">Claude가 만들어준 결과를 붙여넣으세요</h1>' +
-        '<p class="subtle" style="margin-bottom:16px;">T0가 답한 JSON 코드 블록 전체(<code>{"topics": [...]}</code>)를 그대로 복사해서 아래에 붙여넣어주세요.</p>' +
+        '<p class="subtle" style="margin-bottom:16px;">T0가 답한 JSON 코드 블록 전체(<code>{"topics": [...]}</code>)를 그대로 복사해서 아래에 붙여넣어주세요. ("생성 요청"을 쓰면 이 칸은 자동으로 채워집니다.)</p>' +
         '<div class="field"><textarea id="t0-paste" rows="10" placeholder=\'{"topics": [{"name": "...", "category": "...", "questions": ["...", "...", "...", "..."]}, ...]}\'></textarea></div>' +
         '<div class="field-error" id="t0-import-error"></div>' +
         '<div class="row-actions">' +
@@ -651,6 +655,7 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
         "</div></div>";
 
       document.getElementById("btn-copy-survey").addEventListener("click", copySurveyPrompt);
+      document.getElementById("btn-generate-t0").addEventListener("click", requestT0Generation);
       document.getElementById("btn-back").addEventListener("click", function () {
         state.surveyAnswers = null; state._surveyDraft = null; render();
       });
@@ -872,6 +877,35 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
     }
   }
 
+  function requestT0Generation() {
+    var btn = document.getElementById("btn-generate-t0");
+    var errBox = document.getElementById("t0-import-error");
+    var textarea = document.getElementById("t0-paste");
+    if (errBox) errBox.textContent = "";
+    if (btn) { btn.disabled = true; btn.textContent = "생성 중..."; }
+
+    fetch(API_BASE_URL + "/api/t0", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ surveyAnswers: state.surveyAnswers }),
+    })
+      .then(function (res) {
+        return res.json().then(function (body) { return { ok: res.ok, body: body }; });
+      })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.error ? r.body.error : "백엔드 요청이 실패했어요.");
+        if (textarea) textarea.value = JSON.stringify(r.body, null, 2);
+        applyT0Import(r.body.topics);
+        render();
+      })
+      .catch(function (e) {
+        if (errBox) errBox.textContent = "생성 요청 실패: " + e.message + " (백엔드가 꺼져 있으면 위 수동 복사/붙여넣기를 이용하세요.)";
+      })
+      .finally(function () {
+        if (btn) { btn.disabled = false; btn.textContent = "생성 요청"; }
+      });
+  }
+
   function parseT0Output(text) {
     var parsed;
     try {
@@ -896,6 +930,124 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
       }
     }
     return { topics: parsed.topics };
+  }
+
+  var t1GradeState = null;
+
+  function renderT1GradeForm() {
+    var topics = (state.schedule && state.schedule.topics) || [];
+    var todayEntry = state.schedule && state.schedule.byDate[fmtDate(new Date())];
+    var defaultTopic = (todayEntry && todayEntry.newTopics[0]) || topics[0] || "";
+    var options = topics.map(function (t) {
+      return '<option value="' + escapeHtml(t) + '"' + (t === defaultTopic ? " selected" : "") + ">" + escapeHtml(t) + "</option>";
+    }).join("");
+    return (
+      '<div class="field"><label>주제</label><select id="t1-grade-topic">' + options + "</select></div>" +
+      '<div class="field"><label>실제로 답한 질문</label><input type="text" id="t1-grade-question" placeholder="예: Q2. 카페를 얼마나 자주 가나요?"></div>' +
+      '<div class="field"><label>스크립트</label><textarea id="t1-grade-script" rows="5" placeholder="말하거나 쓴 답변을 그대로 붙여넣으세요"></textarea></div>' +
+      '<div class="field-error" id="t1-grade-error"></div>' +
+      '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-primary btn-sm" id="btn-request-t1-grade">채점 요청</button></div>'
+    );
+  }
+
+  function requestT1Grade() {
+    var btn = document.getElementById("btn-request-t1-grade");
+    var errEl = document.getElementById("t1-grade-error");
+    var topic = document.getElementById("t1-grade-topic").value;
+    var question = document.getElementById("t1-grade-question").value.trim();
+    var scriptText = document.getElementById("t1-grade-script").value.trim();
+    errEl.textContent = "";
+
+    if (!question) { errEl.textContent = "어떤 질문에 답했는지 알려주세요 — 질문 없이는 채점할 수 없어요."; return; }
+    if (!scriptText) { errEl.textContent = "스크립트를 입력해주세요."; return; }
+
+    var existing = state.scripts.find(function (s) { return s.topic === topic; });
+    var mode = existing ? "review" : "new";
+
+    btn.disabled = true; btn.textContent = "채점 중...";
+    fetch(API_BASE_URL + "/api/t1/grade", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic: topic, question: question, scriptText: scriptText, mode: mode,
+        originalScriptText: existing ? existing.originalScriptText : undefined,
+        previousGrade: existing ? existing.grade : undefined,
+      }),
+    })
+      .then(function (res) { return res.json().then(function (body) { return { ok: res.ok, body: body }; }); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.error ? r.body.error : "채점 요청이 실패했어요.");
+        t1GradeState = { topic: topic, originalScriptText: scriptText, result: r.body };
+        renderT1GradeResult();
+      })
+      .catch(function (e) {
+        errEl.textContent = "채점 요청 실패: " + e.message + " (백엔드가 꺼져 있으면 아래 수동 붙여넣기를 이용하세요.)";
+      })
+      .finally(function () {
+        btn.disabled = false; btn.textContent = "채점 요청";
+      });
+  }
+
+  function renderT1GradeResult() {
+    var box = document.getElementById("t1-grade-result");
+    if (!box) return;
+    if (!t1GradeState) { box.innerHTML = ""; return; }
+    var r = t1GradeState.result;
+
+    var errorsHtml = (r.errors || []).map(function (e) {
+      return "<li><strong>“" + escapeHtml(e.quote) + "”</strong> — " + escapeHtml(e.explanation) + "</li>";
+    }).join("");
+
+    var candidatesHtml = (r.candidateExpressions || []).map(function (text, i) {
+      return '<label class="expr-check"><input type="checkbox" data-expr-idx="' + i + '"> ' + escapeHtml(text) + "</label>";
+    }).join("");
+
+    box.innerHTML =
+      '<div class="card" style="margin-top:12px; background:var(--surface-2, #f7f7f8);">' +
+      "<div><strong>채점 등급: " + escapeHtml(r.grade) + "</strong></div>" +
+      "<p class=\"subtle\" style=\"margin-top:8px;\">" + escapeHtml(r.feedback) + "</p>" +
+      (errorsHtml ? "<div class=\"eyebrow\" style=\"margin-top:10px;\">오류 표시</div><ul>" + errorsHtml + "</ul>" : "") +
+      '<div class="eyebrow" style="margin-top:10px;">수정된 스크립트</div><p>' + escapeHtml(r.correctedScript) + "</p>" +
+      '<div class="eyebrow" style="margin-top:10px;">암기 키워드 흐름</div><p>' + (r.keywordFlow || []).map(escapeHtml).join(" → ") + "</p>" +
+      '<div class="eyebrow" style="margin-top:10px;">주요 표현 후보 — 5개를 골라주세요</div>' +
+      '<div class="expr-check-list">' + candidatesHtml + "</div>" +
+      '<div class="field-error" id="t1-finalize-error"></div>' +
+      '<div class="row-actions" style="margin-top:10px;"><span></span><button class="btn btn-primary btn-sm" id="btn-finalize-t1">선택 완료 → 저장</button></div>' +
+      "</div>";
+
+    document.getElementById("btn-finalize-t1").addEventListener("click", finalizeT1);
+  }
+
+  function finalizeT1() {
+    var errEl = document.getElementById("t1-finalize-error");
+    var checked = Array.prototype.filter.call(document.querySelectorAll("[data-expr-idx]"), function (el) { return el.checked; });
+    var selectedIndices = checked.map(function (el) { return parseInt(el.getAttribute("data-expr-idx"), 10); });
+    if (selectedIndices.length === 0) {
+      errEl.textContent = "표현을 최소 1개(권장 5개) 골라주세요.";
+      return;
+    }
+    var r = t1GradeState.result;
+    fetch(API_BASE_URL + "/api/t1/finalize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic: t1GradeState.topic,
+        originalScriptText: t1GradeState.originalScriptText,
+        correctedScript: r.correctedScript,
+        feedback: r.feedback,
+        grade: r.grade,
+        candidateExpressions: r.candidateExpressions,
+        selectedIndices: selectedIndices,
+      }),
+    })
+      .then(function (res) { return res.json().then(function (body) { return { ok: res.ok, body: body }; }); })
+      .then(function (result) {
+        if (!result.ok) throw new Error(result.body && result.body.error ? result.body.error : "저장 요청이 실패했어요.");
+        applyT1Import(result.body);
+        t1GradeState = null;
+        render();
+      })
+      .catch(function (e) { errEl.textContent = "저장 실패: " + e.message; });
   }
 
   function parseT1Output(text) {
@@ -1372,8 +1524,11 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
       "</div>" +
       '<div class="card"><div class="eyebrow">오늘의 학습</div><h2 class="title-md">' + todayStr + "</h2>" + todayLearnHtml + "</div>" +
       '<div class="card">' +
-      '<div class="eyebrow">T1 결과 가져오기</div><h2 class="title-md" style="margin-bottom:8px;">채점 끝난 스크립트 저장</h2>' +
-      '<p class="subtle" style="margin-bottom:14px;">T1이 만들어준 JSON(주제·등급·수정된 스크립트·표현 5개 선택 포함)을 붙여넣으면 대본·표현 DB와 학습 진행보드에 반영돼요.</p>' +
+      '<div class="eyebrow">T1 · 스크립트 채점</div><h2 class="title-md" style="margin-bottom:8px;">스크립트 채점 요청</h2>' +
+      '<p class="subtle" style="margin-bottom:14px;">주제·질문·스크립트를 넣고 채점을 요청하면, 등급·피드백·표현 후보가 바로 아래에 떠요. (백엔드가 없으면 아래 수동 붙여넣기를 쓰세요.)</p>' +
+      renderT1GradeForm() +
+      '<div id="t1-grade-result"></div>' +
+      '<div class="row-actions" style="margin-top:16px; margin-bottom:6px;"><span class="subtle">— 또는 Claude 대화창에서 받은 JSON 직접 붙여넣기 —</span></div>' +
       '<div class="field"><textarea id="t1-paste" rows="6" placeholder=\'{"topic": "...", "grade": "...", "scriptText": "...", "feedback": "...", "expressions": [{"text": "...", "important": true}, ...]}\'></textarea></div>' +
       '<div class="field-error" id="t1-import-error"></div>' +
       '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-primary btn-sm" id="btn-import-t1">가져오기</button></div>' +
@@ -1410,6 +1565,7 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
       el.addEventListener("click", function () { copyReviewPrompt(el.getAttribute("data-copy-review"), el); });
     });
     document.getElementById("btn-copy-today").addEventListener("click", copyTodayPrompt);
+    document.getElementById("btn-request-t1-grade").addEventListener("click", requestT1Grade);
     document.getElementById("btn-import-t1").addEventListener("click", function () {
       var text = document.getElementById("t1-paste").value.trim();
       var errEl = document.getElementById("t1-import-error");
