@@ -1378,6 +1378,80 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
 
   var VALID_DECISIONS = ["weekend_makeup", "push_deadline"];
 
+  var t6PendingDecision = false;
+
+  function renderT6Form() {
+    return (
+      '<div class="field"><label>오늘 공부한 시간 (분)</label><input type="number" id="t6-minutes" min="0" placeholder="45"></div>' +
+      '<div class="field"><label><input type="checkbox" id="t6-completed"> 오늘 배정된 신규 스크립트 작성을 완료했다</label></div>' +
+      '<div class="field"><label>체감 달성도</label><textarea id="t6-achievement" rows="2" placeholder="예: 체감상 60% 정도 달성"></textarea></div>' +
+      '<div class="field"><label>잘한 점</label><textarea id="t6-good" rows="2"></textarea></div>' +
+      '<div class="field"><label>개선점</label><textarea id="t6-improve" rows="2"></textarea></div>' +
+      '<div class="field-error" id="t6-error"></div>' +
+      '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-primary btn-sm" id="btn-request-t6">회고 제출</button></div>'
+    );
+  }
+
+  function collectT6Body(decision) {
+    var minutes = document.getElementById("t6-minutes").value;
+    return {
+      date: fmtDate(new Date()),
+      studyMinutes: minutes ? parseInt(minutes, 10) : null,
+      completedNewScript: document.getElementById("t6-completed").checked,
+      achievementNote: document.getElementById("t6-achievement").value.trim(),
+      goodPoints: document.getElementById("t6-good").value.trim(),
+      improvements: document.getElementById("t6-improve").value.trim(),
+      decision: decision || null,
+    };
+  }
+
+  function requestT6() {
+    submitT6(collectT6Body(null));
+  }
+
+  function submitT6(body) {
+    var errEl = document.getElementById("t6-error");
+    errEl.textContent = "";
+    fetch(API_BASE_URL + "/api/t6", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.error ? r.body.error : "제출이 실패했어요.");
+        if (r.body.status === "need_decision") {
+          t6PendingDecision = { body: body, options: r.body.options, message: r.body.message };
+          renderT6Result();
+          return;
+        }
+        applyT6Import(r.body.data);
+        t6PendingDecision = false;
+        render();
+      })
+      .catch(function (e) { errEl.textContent = "제출 실패: " + e.message + " (백엔드가 꺼져 있으면 아래 수동 붙여넣기를 이용하세요.)"; });
+  }
+
+  function renderT6Result() {
+    var box = document.getElementById("t6-result");
+    if (!box) return;
+    if (!t6PendingDecision) { box.innerHTML = ""; return; }
+    box.innerHTML =
+      '<div class="card" style="margin-top:12px; background:var(--surface-2, #f7f7f8);">' +
+      "<p>" + escapeHtml(t6PendingDecision.message) + "</p>" +
+      t6PendingDecision.options.map(function (o) {
+        return '<div class="row-actions" style="margin-top:8px;"><span class="subtle">' + escapeHtml(o.label) + '</span><button class="btn btn-primary btn-sm" data-t6-decision="' + o.value + '">이걸로 선택</button></div>';
+      }).join("") +
+      "</div>";
+    Array.prototype.forEach.call(box.querySelectorAll("[data-t6-decision]"), function (el) {
+      el.addEventListener("click", function () {
+        var body = t6PendingDecision.body;
+        body.decision = el.getAttribute("data-t6-decision");
+        submitT6(body);
+      });
+    });
+  }
+
   function parseT6Output(text) {
     var parsed;
     try {
@@ -1728,7 +1802,10 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
       "</div>" +
       '<div class="card">' +
       '<div class="eyebrow">오늘 회고 (T6)</div><h2 class="title-md" style="margin-bottom:8px;">하루 마무리하기</h2>' +
-      '<p class="subtle" style="margin-bottom:14px;">아래 버튼으로 회고 프롬프트를 복사해 Claude에게 보내면, 오늘 신규 학습을 못 끝냈을 때 일정 조정(주말 보충 vs 목표일 연장)까지 같이 정해줘요. 끝나면 나오는 JSON을 붙여넣으면 기록되고, 필요하면 일정도 갱신돼요.</p>' +
+      '<p class="subtle" style="margin-bottom:14px;">아래 칸을 채우고 제출하면 바로 기록돼요. 오늘 신규 학습을 못 끝냈으면 일정 조정 옵션을 골라야 해요.</p>' +
+      renderT6Form() +
+      '<div id="t6-result"></div>' +
+      '<div class="row-actions" style="margin-top:16px; margin-bottom:6px;"><span class="subtle">— 또는 Claude 대화창에서 받은 JSON 직접 붙여넣기 —</span></div>' +
       '<div class="row-actions" style="margin-top:0; margin-bottom:14px;"><span></span><button class="btn btn-ghost btn-sm" id="btn-copy-retro">회고 시작하기 복사</button></div>' +
       '<div class="field"><textarea id="t6-paste" rows="5" placeholder=\'{"date": "...", "studyMinutes": 45, "completedNewScript": true, "achievementNote": "...", "goodPoints": "...", "improvements": "...", "decision": null}\'></textarea></div>' +
       '<div class="field-error" id="t6-import-error"></div>' +
@@ -1752,6 +1829,7 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
     document.getElementById("btn-copy-today").addEventListener("click", copyTodayPrompt);
     document.getElementById("btn-request-t1-grade").addEventListener("click", requestT1Grade);
     document.getElementById("btn-request-t2").addEventListener("click", requestT2);
+    document.getElementById("btn-request-t6").addEventListener("click", requestT6);
     document.getElementById("btn-import-t1").addEventListener("click", function () {
       var text = document.getElementById("t1-paste").value.trim();
       var errEl = document.getElementById("t1-import-error");
