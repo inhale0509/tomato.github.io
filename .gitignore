@@ -11,3 +11,7 @@ backend/.env
 !.claude/skills/t0-topic-generator/**
 !.claude/skills/t1-script-grader/
 !.claude/skills/t1-script-grader/**
+!.claude/skills/t2-mastery-calculator/
+!.claude/skills/t2-mastery-calculator/**
+!.claude/skills/t3-expression-grader/
+!.claude/skills/t3-expression-grader/**

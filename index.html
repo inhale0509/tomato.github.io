@@ -1136,6 +1136,188 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
 
   var VALID_PCT = [0, 25, 50, 75, 100];
 
+  var t2State = null;
+  var ATTEMPTS_TO_PCT = { 1: 100, 2: 75, 3: 50 };
+  function attemptsToPct(attempts) { return ATTEMPTS_TO_PCT[attempts] !== undefined ? ATTEMPTS_TO_PCT[attempts] : 25; }
+  function roundToStep(x) {
+    var steps = [0, 25, 50, 75, 100];
+    var best = steps[0], bestDist = Infinity;
+    steps.forEach(function (step) {
+      var dist = Math.abs(x - step);
+      if (dist < bestDist || (dist === bestDist && step > best)) { best = step; bestDist = dist; }
+    });
+    return best;
+  }
+
+  function scriptsWithTopic() {
+    return state.scripts.map(function (s) { return s.topic; });
+  }
+
+  function renderT2Form() {
+    var todayEntry = state.schedule && state.schedule.byDate[fmtDate(new Date())];
+    var reviewTopicToday = todayEntry && todayEntry.reviewTopics[0] && todayEntry.reviewTopics[0].topic;
+    var topics = scriptsWithTopic();
+    var defaultTopic = (reviewTopicToday && topics.indexOf(reviewTopicToday) !== -1) ? reviewTopicToday : topics[0];
+    var options = topics.map(function (t) {
+      return '<option value="' + escapeHtml(t) + '"' + (t === defaultTopic ? " selected" : "") + ">" + escapeHtml(t) + "</option>";
+    }).join("");
+    return (
+      '<div class="field"><label>주제</label><select id="t2-topic">' + options + "</select></div>" +
+      '<div class="field"><label>오늘 다시 말해본 내용 (전사)</label><textarea id="t2-transcript" rows="5" placeholder="오늘 복습하면서 소리 내어 말한 내용을 그대로 붙여넣으세요"></textarea></div>' +
+      '<div class="field-error" id="t2-error"></div>' +
+      '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-primary btn-sm" id="btn-request-t2">체화 정도 계산</button></div>'
+    );
+  }
+
+  function requestT2() {
+    var btn = document.getElementById("btn-request-t2");
+    var errEl = document.getElementById("t2-error");
+    var topic = document.getElementById("t2-topic").value;
+    var reviewTranscript = document.getElementById("t2-transcript").value.trim();
+    errEl.textContent = "";
+    if (!reviewTranscript) { errEl.textContent = "오늘 다시 말해본 내용을 붙여넣어주세요."; return; }
+
+    var script = state.scripts.find(function (s) { return s.topic === topic; });
+    if (!script) { errEl.textContent = "이 주제의 저장된 스크립트를 찾을 수 없어요."; return; }
+    var importantExpressions = state.expressions.filter(function (e) { return e.topic === topic && e.important; }).map(function (e) { return e.name; });
+
+    btn.disabled = true; btn.textContent = "계산 중...";
+    fetch(API_BASE_URL + "/api/t2", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic: topic, originalScriptText: script.originalScriptText, revisedScriptText: script.scriptText,
+        reviewTranscript: reviewTranscript, importantExpressions: importantExpressions, priorGrade: script.grade,
+      }),
+    })
+      .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.error ? r.body.error : "계산 요청이 실패했어요.");
+        t2State = { topic: topic, masteryPct: r.body.masteryPct, note: r.body.note, importantExpressions: importantExpressions, quiz: null };
+        renderT2Result();
+      })
+      .catch(function (e) { errEl.textContent = "계산 실패: " + e.message + " (백엔드가 꺼져 있으면 아래 수동 붙여넣기를 이용하세요.)"; })
+      .finally(function () { btn.disabled = false; btn.textContent = "체화 정도 계산"; });
+  }
+
+  function renderT2Result() {
+    var box = document.getElementById("t2-result");
+    if (!box) return;
+    if (!t2State) { box.innerHTML = ""; return; }
+
+    var html = '<div class="card" style="margin-top:12px; background:var(--surface-2, #f7f7f8);">' +
+      "<div><strong>체화 정도: " + t2State.masteryPct + "%</strong></div>" +
+      '<p class="subtle" style="margin-top:8px;">' + escapeHtml(t2State.note) + "</p>";
+
+    if (!t2State.importantExpressions.length) {
+      html += '<div class="row-actions" style="margin-top:10px;"><span></span><button class="btn btn-primary btn-sm" id="btn-t2-save">저장하기</button></div>';
+    } else if (!t2State.quiz) {
+      html += '<div class="row-actions" style="margin-top:10px;"><span></span><button class="btn btn-primary btn-sm" id="btn-t2-start-quiz">표현 테스트 시작</button></div>';
+    } else {
+      var unresolved = t2State.quiz.items.filter(function (it) { return !it.resolved; });
+      if (unresolved.length) {
+        html += '<div class="eyebrow" style="margin-top:10px;">표현 테스트 — 한국어 뜻을 보고 영어로 답해주세요</div>';
+        html += unresolved.map(function (it, i) {
+          return '<div class="field"><label>' + escapeHtml(it.prompt) + '</label><input type="text" data-quiz-text="' + escapeHtml(it.text) + '" placeholder="영어로 답하기"></div>';
+        }).join("");
+        html += '<div class="field-error" id="t2-quiz-error"></div>';
+        html += '<div class="row-actions" style="margin-top:10px;">' +
+          (t2State.quiz.items.some(function (it) { return it.attempts > 0; }) ? '<button class="btn btn-ghost btn-sm" id="btn-t2-giveup">그만두기(포기 처리)</button>' : "<span></span>") +
+          '<button class="btn btn-primary btn-sm" id="btn-t2-grade-quiz">채점하기</button></div>';
+      } else {
+        html += '<div class="eyebrow" style="margin-top:10px;">표현 테스트 결과</div><ul>' +
+          t2State.quiz.items.map(function (it) {
+            return "<li>" + escapeHtml(it.text) + " — " + (it.givenUp ? "포기 (0%)" : "최종 " + it.finalMasteryPct + "% (" + it.attempts + "회 시도)") + "</li>";
+          }).join("") + "</ul>";
+        html += '<div class="row-actions" style="margin-top:10px;"><span></span><button class="btn btn-primary btn-sm" id="btn-t2-save">저장하기</button></div>';
+      }
+    }
+    html += "</div>";
+    box.innerHTML = html;
+
+    var startBtn = document.getElementById("btn-t2-start-quiz");
+    if (startBtn) startBtn.addEventListener("click", requestT3Present);
+    var gradeBtn = document.getElementById("btn-t2-grade-quiz");
+    if (gradeBtn) gradeBtn.addEventListener("click", requestT3Grade);
+    var giveupBtn = document.getElementById("btn-t2-giveup");
+    if (giveupBtn) giveupBtn.addEventListener("click", giveUpT2Quiz);
+    var saveBtn = document.getElementById("btn-t2-save");
+    if (saveBtn) saveBtn.addEventListener("click", saveT2Result);
+  }
+
+  function requestT3Present() {
+    var script = state.scripts.find(function (s) { return s.topic === t2State.topic; });
+    fetch(API_BASE_URL + "/api/t3/present", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic: t2State.topic, scriptContext: script ? script.scriptText : undefined, expressions: t2State.importantExpressions }),
+    })
+      .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.error ? r.body.error : "표현 테스트 시작에 실패했어요.");
+        t2State.quiz = {
+          items: r.body.items.map(function (it) { return { text: it.text, prompt: it.prompt, attempts: 0, resolved: false, correct: null, finalMasteryPct: null, givenUp: false }; }),
+        };
+        renderT2Result();
+      })
+      .catch(function (e) { document.getElementById("t2-error").textContent = "표현 테스트 시작 실패: " + e.message; });
+  }
+
+  function requestT3Grade() {
+    var errEl = document.getElementById("t2-quiz-error");
+    var inputs = document.querySelectorAll("[data-quiz-text]");
+    var answered = Array.prototype.map.call(inputs, function (el) {
+      return { text: el.getAttribute("data-quiz-text"), userAnswer: el.value.trim() };
+    });
+    if (answered.some(function (a) { return !a.userAnswer; })) {
+      errEl.textContent = "모든 표현에 답을 입력해주세요.";
+      return;
+    }
+    var itemsByText = {};
+    t2State.quiz.items.forEach(function (it) { itemsByText[it.text] = it; });
+
+    fetch(API_BASE_URL + "/api/t3/grade", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic: t2State.topic,
+        items: answered.map(function (a) { return { text: a.text, prompt: itemsByText[a.text].prompt, userAnswer: a.userAnswer }; }),
+      }),
+    })
+      .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.error ? r.body.error : "채점 요청이 실패했어요.");
+        r.body.results.forEach(function (res) {
+          var it = itemsByText[res.text];
+          if (!it) return;
+          it.attempts += 1;
+          if (res.correct) { it.resolved = true; it.correct = true; it.finalMasteryPct = attemptsToPct(it.attempts); }
+        });
+        renderT2Result();
+      })
+      .catch(function (e) { errEl.textContent = "채점 실패: " + e.message; });
+  }
+
+  function giveUpT2Quiz() {
+    t2State.quiz.items.forEach(function (it) {
+      if (!it.resolved) { it.resolved = true; it.givenUp = true; it.finalMasteryPct = 0; }
+    });
+    renderT2Result();
+  }
+
+  function saveT2Result() {
+    var data = { topic: t2State.topic, masteryPct: t2State.masteryPct, note: t2State.note };
+    if (t2State.quiz) {
+      var results = t2State.quiz.items.map(function (it) { return { text: it.text, masteryPct: it.finalMasteryPct }; });
+      var avg = results.reduce(function (sum, r) { return sum + r.masteryPct; }, 0) / results.length;
+      data.expressionResults = results;
+      data.avgExpressionMastery = roundToStep(avg);
+    }
+    applyReviewImport(data);
+    t2State = null;
+    render();
+  }
+
   function parseReviewOutput(text) {
     var parsed;
     try {
@@ -1536,7 +1718,10 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
       '<div class="card"><div class="eyebrow">오늘의 복습</div><h2 class="title-md">에빙하우스 기준</h2>' + todayReviewHtml + "</div>" +
       '<div class="card">' +
       '<div class="eyebrow">복습 결과 가져오기 (T2~T5)</div><h2 class="title-md" style="margin-bottom:8px;">체화 정도 · 표현 평균 갱신</h2>' +
-      '<p class="subtle" style="margin-bottom:14px;">T2가 만들어준 JSON을 붙여넣으면 대본의 체화 정도가 갱신돼요. 표현 테스트까지 이어서 진행했다면(expressionResults·avgExpressionMastery 포함) 표현 DB와 표현 평균 체화도까지 한 번에 갱신됩니다.</p>' +
+      '<p class="subtle" style="margin-bottom:14px;">주제를 고르고 오늘 다시 말해본 내용을 붙여넣으면 체화 정도가 바로 계산되고, 저장된 주요 표현이 있으면 이어서 테스트까지 진행돼요.</p>' +
+      renderT2Form() +
+      '<div id="t2-result"></div>' +
+      '<div class="row-actions" style="margin-top:16px; margin-bottom:6px;"><span class="subtle">— 또는 Claude 대화창에서 받은 JSON 직접 붙여넣기 —</span></div>' +
       '<div class="field"><textarea id="review-paste" rows="6" placeholder=\'{"topic": "...", "masteryPct": 75, "note": "...", "expressionResults": [{"text": "...", "masteryPct": 100}], "avgExpressionMastery": 88}\'></textarea></div>' +
       '<div class="field-error" id="review-import-error"></div>' +
       '<div class="row-actions" style="margin-top:0;"><span></span><button class="btn btn-primary btn-sm" id="btn-import-review">가져오기</button></div>' +
@@ -1566,6 +1751,7 @@ table.db td { padding: 10px; border-bottom: 1px solid var(--border); }
     });
     document.getElementById("btn-copy-today").addEventListener("click", copyTodayPrompt);
     document.getElementById("btn-request-t1-grade").addEventListener("click", requestT1Grade);
+    document.getElementById("btn-request-t2").addEventListener("click", requestT2);
     document.getElementById("btn-import-t1").addEventListener("click", function () {
       var text = document.getElementById("t1-paste").value.trim();
       var errEl = document.getElementById("t1-import-error");
